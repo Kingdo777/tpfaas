@@ -5,6 +5,7 @@
 #include <pthread.h>
 #include <zconf.h>
 #include <memory.h>
+#include <sys/wait.h>
 #include "tool/tls.h"
 #include "function/function.h"
 #include "thread_pool/tpool.h"
@@ -86,13 +87,14 @@ static void test_tls() {
 
 static void call_all_task() {
     task *t;
-    while (1) {
-        list_for_each_entry(t, &__task_list, task_list_node) {
-            thread_wake_up_one(t);
+//    while (1) {
+    list_for_each_entry(t, &__task_list, task_list_node) {
+        thread_wake_up_one(t);
 //            printf("try wake %d\n", t->tgid);
-        }
-        sleep(1);
+        wait(&t->tgid);
     }
+    sleep(1);
+//    }
 }
 
 int main() {
@@ -101,14 +103,11 @@ int main() {
 
     create_pool_test(1);
 
-    sleep(10);
-
     test_tls_gs();
     test_tls();
     printf("I am Ok %d\n", 666);
 
     call_all_task();
-
     sleep(1000000);
     return 0;
 }

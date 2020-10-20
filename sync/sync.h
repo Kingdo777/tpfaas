@@ -5,8 +5,9 @@
 #ifndef TPFAAS_SYNC_H
 #define TPFAAS_SYNC_H
 
-#include <thread_pool/tpool.h>
+#include "thread_pool/tpool.h"
 #include "function/function.h"
+#include "task/task.h"
 
 
 //随便一个整数就可以，这里就是我的幸运数字了
