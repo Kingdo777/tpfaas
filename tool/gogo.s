@@ -1,5 +1,20 @@
 #void gogo(void *new_stack, size_t stack_size)
-	.file	"gogo.c"
+#void gogo(void *new_stack, size_t stack_size) {
+#    task *t;
+#    get_tls(&t);
+#    void *sp_old = t->stack_space;
+#    //  切换SP
+#    t->stack_space = new_stack;
+#    t->stack_top = new_stack + stack_size;
+#    //写入task_done
+#    t->stack_top -= sizeof(ulong);
+#    *(ulong *) (t->stack_top) = (ulong) task_done;
+#    //释放老栈
+#    free(sp_old);
+#    //   跳转
+#    void *pc = t->next_func;
+#}
+	.file	"gogo.s"
 	.text
 	.globl	gogo
 	.type	gogo, @function
@@ -50,8 +65,11 @@ gogo:
 	movq	32(%rax), %rax
 	movq	%rax, -16(%rbp)
 	nop
+
+    .cfi_def_cfa 7, 8
     # 跳转到用户线程
     jmp     %rax
+    .cfi_endproc
 
 
 #gogo函数栈帧

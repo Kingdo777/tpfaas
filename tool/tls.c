@@ -5,7 +5,6 @@
 #include "tls.h"
 
 #include <asm/prctl.h>
-#include <sys/prctl.h>
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -37,6 +36,12 @@ static void call_arch_prctl(int code, unsigned long *addr) {
                 break;
             case ARCH_SET_FS:
                 op = "set_tls";
+                break;
+            case ARCH_GET_GS:
+                op = "get_tls_gs";
+                break;
+            case ARCH_SET_GS:
+                op = "set_tls_gs";
                 break;
             default:
                 break;

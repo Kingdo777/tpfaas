@@ -3,10 +3,8 @@
 //
 
 #include "sync.h"
-#include "thread_pool/tpool.h"
 #include <linux/futex.h>
-#include <sys/time.h>
-#include <zconf.h>
+#include <unistd.h>
 #include <syscall.h>
 
 void thread_sleep(int *futex_word) {

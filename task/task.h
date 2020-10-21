@@ -11,6 +11,8 @@
 
 #define DEFAULT_STACK_SIZE 8*1024
 
+#define MALLOC_STACK_SPACE(s_size) malloc(s_size)
+#define MALLOC_DEFAULT_STACK_SPACE() MALLOC_STACK_SPACE(DEFAULT_STACK_SIZE)
 #define MALLOC_STACK(s_top, s_space, s_size) s_space=malloc(s_size);\
     s_top=s_space+s_size;
 #define MALLOC_DEFAULT_STACK(s_top, s_space) MALLOC_STACK(s_top, s_space,DEFAULT_STACK_SIZE)

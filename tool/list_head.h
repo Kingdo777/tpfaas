@@ -5,6 +5,8 @@
 #ifndef TPFAAS_LIST_HEAD_H
 #define TPFAAS_LIST_HEAD_H
 
+#include <stddef.h>
+
 //双向链表，后添加的节点是表头
 typedef struct list_head {
     struct list_head *next, *prev;
@@ -23,9 +25,9 @@ static inline void INIT_LIST_HEAD(struct list_head *list) {
 
 
 //添加节点
-static inline void __list_add(struct list_head *new,
-                              struct list_head *prev,
-                              struct list_head *next) {
+static inline void list_add_(struct list_head *new,
+                                struct list_head *prev,
+                                struct list_head *next) {
 
     next->prev = new;
     new->next = next;
@@ -34,7 +36,7 @@ static inline void __list_add(struct list_head *new,
 }
 
 static inline void list_add(struct list_head *new, struct list_head *head) {
-    __list_add(new, head, head->next);
+    list_add_(new, head, head->next);
 }
 
 

@@ -2,11 +2,9 @@
 // Created by kingdo on 10/17/20.
 //
 
-#include <stdio.h>
 #include <stdbool.h>
 #include <memory.h>
 #include "function.h"
-#include "sync/sync.h"
 
 //记录当前可用的func_id
 int __next_func_id = 0;

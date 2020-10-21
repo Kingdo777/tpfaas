@@ -6,28 +6,43 @@
 #include "tool/tls.h"
 #include "sync/sync.h"
 #include <stdio.h>
-#include <zconf.h>
+#include <unistd.h>
 #include "task.h"
 
-LIST_HEAD(__task_list);
+LIST_HEAD(task_list__);
+
 
 extern void gogo(void *new_stack, size_t stack_size);
 
-void task_done() {
+
+
+void get_function() {
     TLS(t);
-    {
-        //TODO:这里应该是到队列里面去寻找，看看是否存在正在派对的任务，如果有的话那么拉过来执行
+    func f;
+//    find:
+    if (t->next_func != NULL) {
+        return;
     }
-    //最后才是阻塞
-//    thread_sleep(&t->futex_word);
-    printf("Work\n");
+    //TODO 这里是在一个队列里寻找任务
+//    puts("no function to run\n");
+    thread_sleep(&t->futex_word);
+//    goto find;
 }
 
-//线程刚创建时时执行的代码
+void task_done() {
+    //get_function如果找不到function，那么将一直睡眠，一旦返回说明已经找到
+    get_function();
+    //找到的function被写到了task的next_function中
+//    gogo(MALLOC_DEFAULT_STACK_SPACE(), DEFAULT_STACK_SIZE);
+}
+
+//线程刚创建时执行的代码
 int task_birth(void *arg) {
     TLS(t);
     if (t->futex_word == DEFAULT_FUTEX_WORD) {
         puts("child thread get tls true\n");
+    } else {
+        puts("child thread get tls wrong\n");
     }
     if (t->next_func != NULL) {
         //TODO 进入用户函数
@@ -43,7 +58,9 @@ int task_birth(void *arg) {
 //        sleep(1);
 //    }
     //never arrive
-    exit(1);
+    printf("exit error\n");
+    // 线程是不能执行exit操作的，因为会终止所有的线程，只要是指定了clone的CLONE_VM参数,就会终止所有的线程
+//     exit(1);
 }
 
 void init_task(task *t) {
@@ -52,5 +69,5 @@ void init_task(task *t) {
     t->stack_size = DEFAULT_STACK_SIZE;
     t->next_func = NULL;
     INIT_LIST_HEAD(&t->task_list_node);
-    list_add(&t->task_list_node, &__task_list);
+    list_add(&t->task_list_node, &task_list__);
 }
