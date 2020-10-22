@@ -15,9 +15,11 @@
 
 extern list_head task_list__;
 
+unsigned long printf_fs;
+unsigned long base;
 
 void *taskA(void *arg) {
-    printf("AAAAAAAAAAA I am Task AAAAAAAAAAA\n");
+    PRINTF("%s I am Task %s\n", "AAAAAAAAAAA", "AAAAAAAAAAA");
     return NULL;
 }
 
@@ -54,8 +56,7 @@ static void create_pool_test(int pool_size) {
 
 static void test_tls_gs() {
     //保留原来的FS
-    unsigned long base;
-    get_tls_gs(&base);
+    SAVE_FS()
 
     int tls_gs_test = 18;
     set_tls_gs(&tls_gs_test);
@@ -68,13 +69,12 @@ static void test_tls_gs() {
     }
 
     //恢复原来的FS
-    set_tls_gs((void *) base);
+    RESTORE_FS()
 }
 
 static void test_tls() {
     //保留原来的FS
-    unsigned long base;
-    get_tls(&base);
+    SAVE_FS()
 
     //因为printf需要用到FS寄存器，因此set_tls后，printf函数将无法正常使用，只能打印字符串，不能打印数字
     char *tls_test = malloc(sizeof("hello tls"));
@@ -89,7 +89,7 @@ static void test_tls() {
     }
 
     //恢复原来的FS
-    set_tls((void *) base);
+    RESTORE_FS()
 }
 
 _Noreturn static void call_all_task() {
@@ -127,7 +127,10 @@ static inline void stack_op_test() {
     printf("%p\n", s);
     exit(0);
 }
+
+
 int main() {
+    GET_PRINTF_FS()
 //    test();
     function_test();
 

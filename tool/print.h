@@ -8,6 +8,9 @@
 #include <stdio.h>
 #include <stdbool.h>
 
+extern unsigned long printf_fs;
+extern unsigned long base;
+
 #define PRINT_LONG(n) print_num(n,true)
 #define PRINT_INT(n) print_num((long)n,true)
 #define PRINT_LONG_INLINE(n) print_num(n,false)
@@ -29,5 +32,12 @@ static inline void print_num(long num, bool new_line) {
         s[i--] = sign;
     puts(&s[++i]);
 }
+
+
+#define GET_PRINTF_FS() get_tls(&printf_fs);
+#define RESTORE_PRINTF_FS() set_tls((void *) printf_fs);
+#define SAVE_FS() get_tls(&base);
+#define RESTORE_FS() set_tls((void *) base);
+#define PRINTF(...) SAVE_FS() RESTORE_PRINTF_FS() printf(__VA_ARGS__); RESTORE_FS()
 
 #endif //TPFAAS_PRINT_H
