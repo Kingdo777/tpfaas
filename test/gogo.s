@@ -45,6 +45,7 @@ gogo:
 	call	free@PLT
 	movq	-32(%rbp), %rax
 	movq	32(%rax), %rax
+	movq	16(%rax), %rax
 	movq	%rax, -16(%rbp)
 	nop
 	movq	-8(%rbp), %rax

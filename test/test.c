@@ -16,5 +16,5 @@ void gogo(void *new_stack, size_t stack_size) {
     //释放老栈
     free(sp_old);
     //   跳转
-    void *pc = t->next_func;
+    void *pc = t->next_func->entry_addr;
 }

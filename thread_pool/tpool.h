@@ -6,11 +6,11 @@
 #define TPFAAS_TPOOL_H
 
 #include <stdlib.h>
+#include "function/function.h"
 
 #define TASK_MAX_COUNT 10000
 
 typedef u_int64_t u64;
-
 
 
 typedef struct clone_args {
@@ -35,5 +35,9 @@ typedef struct clone_args {
 } clone_args;
 
 void tpool_create_pool(int pool_size);
+
+void add_task_2_pool();
+
+void add_task_2_pool_with_func(func *f);
 
 #endif //TPFAAS_TPOOL_H

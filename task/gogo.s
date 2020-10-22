@@ -60,9 +60,10 @@ gogo:
 	movq	%rax, %rdi
 	# TODO:这里的free有优化的空间，因为可以仅仅取消物理页面和逻辑页面的映射，这样就以加快内存的分配
 	call	free@PLT
-	# void *pc = t->next_func;
+	# void *pc = t->next_func->entry_addr;
 	movq	-32(%rbp), %rax
 	movq	32(%rax), %rax
+	movq	16(%rax), %rax
 	movq	%rax, -16(%rbp)
 	nop
 

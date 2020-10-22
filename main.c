@@ -6,6 +6,7 @@
 #include <unistd.h>
 #include <linux/futex.h>
 #include <syscall.h>
+#include <tool/print.h>
 #include "tool/tls.h"
 #include "tool/list_head.h"
 #include "function/function.h"
@@ -42,9 +43,9 @@ static void function_test() {
     printf("taskA:%d\n", get_funcId_from_name("taskA"));
     printf("taskB:%d\n", get_funcId_from_name("taskB"));
     printf("taskB:%d\n", get_funcId_from_name("taskC"));
-    FUN("taskA", NULL);
-    FUN("taskB", NULL);
-    FUN("taskC", NULL);
+    FUN("taskA", NULL)
+    FUN("taskB", NULL)
+    FUN("taskC", NULL)
 }
 
 static void create_pool_test(int pool_size) {
@@ -101,25 +102,23 @@ _Noreturn static void call_all_task() {
         list_for_each_entry(t, &task_list__, task_list_node) {
             thread_wake_up_one(t);
         }
-        sleep(1);
+        sleep(3);
     }
 }
 
-int futex_word_test = DEFAULT_FUTEX_WORD;
+
 int main() {
-//    printf("123\n");
-//    syscall(SYS_futex, futex_word_test, FUTEX_WAIT, DEFAULT_FUTEX_WORD);
-//    puts("123\n");
-//    return 0;
     function_test();
 
-    create_pool_test(1);
-
-    test_tls_gs();
-    test_tls();
-    printf("printf is Ok %d\n", 666);
+//    create_pool_test(1);
+//
+//    test_tls_gs();
+//    test_tls();
+//    printf("printf is Ok %d\n", 666);
 
 //    call_all_task();
+    add_task_2_pool_with_func(get_func("taskA"));
+
     sleep(1000000);
     return 0;
 }

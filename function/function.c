@@ -45,8 +45,8 @@ bool func_register(void *(*entry_addr)(void *), const char *function_name) {
     return true;
 }
 
-void *get_func(char *function_name) {
+func *get_func(char *function_name) {
     func_id f_id;
     f_id = get_funcId_from_name(function_name);
-    return f_id == -1 ? NULL : __func_list[f_id].entry_addr;
+    return f_id == -1 ? NULL : &__func_list[f_id];
 }

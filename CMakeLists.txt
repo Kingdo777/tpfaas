@@ -13,5 +13,5 @@ add_executable(tpfaas
         resource.h
         thread_pool/tpool.c thread_pool/tpool.h
         sync/sync.c sync/sync.h
-        tool/list_head.h tool/tls.c tool/tls.h tool/gogo.s
-        task/task.c task/task.h)
+        tool/list_head.h tool/tls.c tool/tls.h
+        task/task.c task/task.h task/gogo.s tool/print.h)

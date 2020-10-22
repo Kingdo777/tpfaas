@@ -7,7 +7,11 @@
 
 #include "tool/list_head.h"
 #include "function/function.h"
+#include "thread_pool/tpool.h"
 #include <stdlib.h>
+
+extern int task_num__;
+extern pid_t task_pid_list__[TASK_MAX_COUNT];
 
 #define DEFAULT_STACK_SIZE 8*1024
 
@@ -17,10 +21,8 @@
     s_top=s_space+s_size;
 #define MALLOC_DEFAULT_STACK(s_top, s_space) MALLOC_STACK(s_top, s_space,DEFAULT_STACK_SIZE)
 
-#define CREATE_A_TASK(t) \
-    task *t = malloc(sizeof(task)); \
-    init_task(t);\
-    __task_num++;
+#define CREATE_A_TASK(t)  task *t = creat_task(NULL);
+#define CREATE_A_TASK_WITH_FUNC(t, f)  task *t = creat_task(f);
 
 typedef struct task {
     //pid
@@ -40,6 +42,8 @@ int task_birth(void *arg);
 
 void task_done();
 
-void init_task(task *t);
+task *creat_task(func *f);
+
+void init_task(task *t, func *f);
 
 #endif //TPFAAS_TASK_H
