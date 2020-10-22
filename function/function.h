@@ -7,6 +7,7 @@
 
 #include <stdbool.h>
 #include "resource.h"
+#include "tool/stack.h"
 
 //最大容纳的function数目
 #define MAX_FUNC_NUM 1000
@@ -34,6 +35,9 @@ typedef struct func {
 
     //资源限制
     resource res;
+
+    //栈结构
+    stack_struct stack;
 } func;
 
 bool func_register(void *(*entry_addr)(void *), const char *function_name);

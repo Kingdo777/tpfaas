@@ -8,8 +8,6 @@
 __pid_t task_pid_list__[TASK_MAX_COUNT];
 int task_num__ = 0;
 
-extern void gogo(void *new_stack, size_t stack_size);
-
 void tpool_create_pool(int pool_size) {
     for (int i = 0; i < pool_size; ++i) {
         add_task_2_pool();

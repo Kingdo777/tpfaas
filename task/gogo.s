@@ -1,110 +1,37 @@
-#void gogo(void *new_stack, size_t stack_size)
-#void gogo(void *new_stack, size_t stack_size) {
-#    task *t;
-#    get_tls(&t);
-#    void *sp_old = t->stack_space;
-#    //  切换SP
-#    t->stack_space = new_stack;
-#    t->stack_top = new_stack + stack_size;
-#    //写入task_done
-#    t->stack_top -= sizeof(ulong);
-#    *(ulong *) (t->stack_top) = (ulong) task_done;
-#    //释放老栈
-#    free(sp_old);
-#    //   跳转
-#    void *pc = t->next_func;
-#}
 	.file	"gogo.s"
+#void gogo_jmp(void *new_pc);
 	.text
-	.globl	gogo
-	.type	gogo, @function
-gogo:
+	.globl	gogo_jmp
+	.type	gogo_jmp, @function
+gogo_jmp:
 .LFB8:
 	.cfi_startproc
-	pushq	%rbp
 	.cfi_def_cfa_offset 16
 	.cfi_offset 6, -16
-	movq	%rsp, %rbp
 	.cfi_def_cfa_register 6
-	# 分配栈空间
-	subq	$48, %rsp
-	# 将参数放入栈中
-	movq	%rdi, -40(%rbp)
-	movq	%rsi, -48(%rbp)
-    # task *t;
-    # get_tls(&t);
-	xorl	%eax, %eax
-	leaq	-32(%rbp), %rax
-	movq	%rax, %rdi
-	call	get_tls@PLT
-	# void *sp_old = t->stack_space;
-	movq	-32(%rbp), %rax
-	movq	8(%rax), %rax
-	movq	%rax, -24(%rbp)
-	# t->stack_space = new_stack;
-    # t->stack_top = new_stack + stack_size;
-	movq	-32(%rbp), %rax
-	movq	-40(%rbp), %rdx
-	movq	%rdx, 8(%rax)
-	movq	-32(%rbp), %rax
-	movq	-40(%rbp), %rcx
-	movq	-48(%rbp), %rdx
-	addq	%rcx, %rdx
-	movq	%rdx, 16(%rax)
-	# 切换SP
-	movq    %rdx, %rsp
-	movq	task_done@GOTPCREL(%rip), %rax
-	pushq   %rax
-	# 释放老栈
-	movq	-24(%rbp), %rax
-	movq	%rax, %rdi
-	# TODO:这里的free有优化的空间，因为可以仅仅取消物理页面和逻辑页面的映射，这样就以加快内存的分配
-	call	free@PLT
-	# void *pc = t->next_func->entry_addr;
-	movq	-32(%rbp), %rax
-	movq	32(%rax), %rax
-	movq	16(%rax), %rax
-	movq	%rax, -16(%rbp)
 	nop
-
     .cfi_def_cfa 7, 8
     # 跳转到用户线程
-    jmp     %rax
+    jmp     %rdi
     .cfi_endproc
 
-
-#gogo函数栈帧
-#+----------------------+  高地址
-#|         %rip         |
-#+----------------------+
-#|         %rbp         |
-#+----------------------+ <--- rbp
-#|                      |
-#+----------------------+ <--- -8(rbp)
-#|          pc          |
-#+----------------------+ <--- -16(rbp)
-#|        sp_old        |
-#+----------------------+ <--- -24(rbp)
-#|           t          |
-#+----------------------+ <--- -32(rbp)
-#|       stack_size     |
-#+----------------------+ <--- -40(rbp)
-#|       new_stack      |
-#+----------------------+ <--- -48(rbp)   <---rsp
-
-#task的结构：               低地址
-#+----------------------+  <--- task(0)
-#|         tgid         |
-#+----------------------+  <--- task(4)
-#|      futex_word      |
-#+----------------------+  <--- task(8)
-#|      stack_space     |
-#+----------------------+  <--- task(16)
-#|       stack_top      |
-#+----------------------+  <--- task(24)
-#|       stack_size     |
-#+----------------------+  <--- task(32)
-#|       next_func      |
-#+----------------------+  <--- task(...)
-#|          ...         |
-#+----------------------+
+#void gogo_switch(void *new_stack);
+	.text
+	.globl	gogo_switch
+	.type	gogo_switch, @function
+gogo_switch:
+.LFB9:
+	.cfi_startproc
+	.cfi_def_cfa_offset 16
+	.cfi_offset 6, -16
+	.cfi_def_cfa_register 6
+	# 保存原来的PC，保证正常返回
+	popq    %rax
+	# 切换栈空间
+	movq    %rdi,%rsp
+	# 恢复原来的PC
+	pushq   %rax
+	nop
+    .cfi_def_cfa 7, 8
+    ret
+    .cfi_endproc

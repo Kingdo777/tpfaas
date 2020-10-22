@@ -15,10 +15,6 @@
 
 extern list_head task_list__;
 
-#define list_for_each_entry(pos, head, member)                \
-    for (pos = list_first_entry(head, typeof(*pos), member);    \
-         &pos->member != (head);                    \
-         pos = list_next_entry(pos, member))
 
 void *taskA(void *arg) {
     printf("AAAAAAAAAAA I am Task AAAAAAAAAAA\n");
@@ -106,8 +102,33 @@ _Noreturn static void call_all_task() {
     }
 }
 
+static inline void stack_op_test() {
+    void *s_top, *s_space;
+    MALLOC_DEFAULT_STACK(s_top, s_space)
+    printf("sp->%p\n", s_top);
+    PUSH_INT(s_top, 7777)
+    printf("sp->%p\n", s_top);
+    PUSH_LONG(s_top, 888888)
+    printf("sp->%p\n", s_top);
+    PUSH_PTR(s_top, s_top)
+    printf("sp->%p\n", s_top);
 
+    int a;
+    long b;
+    void *s;
+    POP_PTR(s_top, s)
+    printf("sp->%p\n", s_top);
+    POP_LONG(s_top, b)
+    printf("sp->%p\n", s_top);
+    POP_INT(s_top, a)
+    printf("sp->%p\n", s_top);
+    PRINT_INT(a);
+    PRINT_LONG(b);
+    printf("%p\n", s);
+    exit(0);
+}
 int main() {
+//    test();
     function_test();
 
 //    create_pool_test(1);

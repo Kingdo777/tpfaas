@@ -9,13 +9,10 @@
 #include "sync/sync.h"
 #include <stdio.h>
 #include <unistd.h>
+#include "tool/stack.h"
 #include "task.h"
 
 LIST_HEAD(task_list__);
-
-
-extern void gogo(void *new_stack, size_t stack_size);
-
 
 void get_function() {
     TLS(t);
@@ -36,7 +33,7 @@ void task_done() {
     //get_function如果找不到function，那么将一直睡眠，一旦返回说明已经找到
     get_function();
     //找到的function被写到了task的next_function中
-    gogo(MALLOC_DEFAULT_STACK_SPACE(), DEFAULT_STACK_SIZE);
+    gogo(t);
 }
 
 //线程刚创建时执行的代码
@@ -49,7 +46,7 @@ int task_birth(void *arg) {
     }
     if (t->next_func != NULL) {
         //TODO 进入用户函数
-        gogo(MALLOC_DEFAULT_STACK_SPACE(), DEFAULT_STACK_SIZE);
+        gogo(t);
     }
     task_done();
     //never arrive
@@ -71,7 +68,7 @@ task *creat_task(func *f) {
          * SIGCHLD，子进程退出时，向父进程发送的signal，如果不发送这个信号，那么是没办法被wait()获取的，只能使用waitpid + __WALL/__WCLONE等参数
          *
         */
-    t->tgid = clone(task_birth, t->stack_top,
+    t->tgid = clone(task_birth, t->stack.stack_top,
                     CLONE_VM |
                     CLONE_SETTLS |
                     CLONE_CHILD_SETTID |
@@ -85,8 +82,8 @@ task *creat_task(func *f) {
 
 void init_task(task *t, func *f) {
     t->futex_word = DEFAULT_FUTEX_WORD;
-    MALLOC_DEFAULT_STACK(t->stack_top, t->stack_space);
-    t->stack_size = DEFAULT_STACK_SIZE;
+    MALLOC_DEFAULT_STACK(t->stack.stack_top, t->stack.stack_space);
+    t->stack.stack_size = DEFAULT_STACK_SIZE;
     t->next_func = f;
     INIT_LIST_HEAD(&t->task_list_node);
     list_add(&t->task_list_node, &task_list__);
