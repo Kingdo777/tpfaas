@@ -4,8 +4,6 @@
 #include <stdio.h>
 #include <memory.h>
 #include <unistd.h>
-#include <linux/futex.h>
-#include <syscall.h>
 #include <tool/print.h>
 #include "tool/tls.h"
 #include "tool/list_head.h"
@@ -49,7 +47,7 @@ static void function_test() {
 static void create_pool_test(int pool_size) {
     tpool_create_pool(pool_size);
     T *t1;
-    list_for_each_entry(t1, &task_list__, task_list_node) {
+    list_for_each_entry(t1, &task_list__, task_list) {
         printf("%d:%d\n", t1->tgid, t1->futex_word);
     }
 }
@@ -95,7 +93,7 @@ static void test_tls() {
 _Noreturn static void call_all_task() {
     T *t;
     while (1) {
-        list_for_each_entry(t, &task_list__, task_list_node) {
+        list_for_each_entry(t, &task_list__, task_list) {
             thread_wake_up_one(t);
         }
         sleep(3);
