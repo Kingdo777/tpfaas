@@ -5,6 +5,8 @@
 #ifndef TPFAAS_RESOURCE_H
 #define TPFAAS_RESOURCE_H
 
+#include "tool/list_head.h"
+
 #define CPU_DEFAULT_SHARES 1024
 #define CPU_DEFAULT_CFS_QUOTA_US -1
 #define CPU_DEFAULT_CFS_PERIOD_US 100000
@@ -30,5 +32,18 @@ typedef struct resource {
     cpu_resource cpu;
     mem_resource mem;
 } resource;
+
+typedef struct R {
+    resource res;
+
+    //用于链接每个list
+    list_head res_list;
+    //链接在此R上的所有F
+    list_head function_head;
+    //链接在此R上的所有的空闲T
+    list_head task_idle_head;
+    //链接在此R上的所有的工作T
+    list_head task_busy_head;
+} R;
 
 #endif //TPFAAS_RESOURCE_H

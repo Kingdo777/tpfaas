@@ -8,7 +8,7 @@
 extern void gogo_switch(void *new_stack);
 extern void gogo_jmp(void *new_pc);
 
-void gogo(task *t) {
+void gogo(T *t) {
     void *old_stack_space = t->stack.stack_space;
     gogo_switch(t->next_func->stack.stack_top);
     free(old_stack_space);

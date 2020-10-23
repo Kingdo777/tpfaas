@@ -19,8 +19,8 @@
 
 void thread_sleep(int *futex_word);
 
-void thread_wake_up_one(task *t);
+void thread_wake_up_one(T *t);
 
-void thread_wake_up_all(task *t);
+void thread_wake_up_all(T *t);
 
 #endif //TPFAAS_SYNC_H

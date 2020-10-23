@@ -17,28 +17,41 @@ typedef struct list_head {
 //创建一个表头
 #define LIST_HEAD(name) \
     struct list_head name = LIST_HEAD_INIT(name)
+
 //配置未初始化的task_head
-static inline void INIT_LIST_HEAD(struct list_head *list) {
-    list->next = list;
-    list->prev = list;
-}
+void INIT_LIST_HEAD(struct list_head *list);
 
+///******************** 添加节点 ****************************///
 
-//添加节点
-static inline void list_add_(struct list_head *new,
-                                struct list_head *prev,
-                                struct list_head *next) {
+/**
+ * list_add - add a new entry
+ * @new: new entry to be added
+ * @head: list head to add it after
+ *
+ * Insert a new entry after the specified head.
+ * This is good for implementing stacks.
+ */
+void list_add_(struct list_head *new, struct list_head *prev, struct list_head *next);
 
-    next->prev = new;
-    new->next = next;
-    new->prev = prev;
-    prev->next = new;
-}
+/**
+ * list_add_tail - add a new entry
+ * @new: new entry to be added
+ * @head: list head to add it before
+ *
+ * Insert a new entry before the specified head.
+ * This is useful for implementing queues.
+ */
+void list_add_tail(struct list_head *new, struct list_head *head);
 
-static inline void list_add(struct list_head *new, struct list_head *head) {
-    list_add_(new, head, head->next);
-}
+/**
+ * Insert a new entry between two known consecutive entries.
+ *
+ * This is only for internal list manipulation where we know
+ * the prev/next entries already!
+ */
+void list_add(struct list_head *new, struct list_head *head);
 
+///******************** 链表遍历 ****************************///
 
 /**
  * 遍历链表,下面都是遍历所需要的子宏
@@ -90,4 +103,43 @@ static inline void list_add(struct list_head *new, struct list_head *head) {
 #define container_of(ptr, type, member) ({          \
     const typeof( ((type *)0)->member ) *__mptr = (ptr); \
     (type *)( (char *)__mptr - offsetof(type,member) );})
+
+///******************** 删除节点 ****************************///
+
+/**
+ * Delete a list entry by making the prev/next entries
+ * point to each other.
+ *
+ * This is only for internal list manipulation where we know
+ * the prev/next entries already!
+ */
+void list_del__(struct list_head *prev, struct list_head *next);
+
+/**
+ * list_del - deletes entry from list.
+ * @entry: the element to delete from the list.
+ * Note: list_empty() on entry does not return true after this, the entry is
+ * in an undefined state.
+ */
+void list_del_entry__(struct list_head *entry);
+
+void list_del(struct list_head *entry);
+
+///******************** 是否为空 ****************************///
+int list_empty(const struct list_head *head);
+
+
+///******************** 迁移节点 ****************************///
+
+void list_move(struct list_head *list, struct list_head *head, int count);
+
+void list_move_tail(struct list_head *list, struct list_head *head);
+
+//把链表A中的n个节点移动到B中，且从B的尾部添加
+void move_listA_n_node_2_listB_tail(struct list_head *listA, struct list_head *listB, int n);
+
+//把链表A中的n个节点移动到B中，且从B的头部添加
+void move_listA_n_node_2_listB(struct list_head *listA, struct list_head *listB, int n);
+
+
 #endif //TPFAAS_LIST_HEAD_H

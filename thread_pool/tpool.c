@@ -18,6 +18,6 @@ void add_task_2_pool() {
     CREATE_A_TASK(t)
 }
 
-void add_task_2_pool_with_func(func *f) {
+void add_task_2_pool_with_func(F *f) {
     CREATE_A_TASK_WITH_FUNC(t, f)
 }

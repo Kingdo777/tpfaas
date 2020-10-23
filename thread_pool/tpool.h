@@ -38,6 +38,6 @@ void tpool_create_pool(int pool_size);
 
 void add_task_2_pool();
 
-void add_task_2_pool_with_func(func *f);
+void add_task_2_pool_with_func(F *f);
 
 #endif //TPFAAS_TPOOL_H

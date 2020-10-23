@@ -13,10 +13,10 @@ int __next_func_id = 0;
 //记录当前的func_num
 int __current_func_num = 0;
 
-func func_list__[MAX_FUNC_NUM];
+F func_list__[MAX_FUNC_NUM];
 
 func_id get_funcId_from_name(const char *function_name) {
-    func *f;
+    F *f;
     for (int i = 0; i < GET_CURRENT_FUNC_NUM(); ++i) {
         f = &func_list__[i];
         if (!strcmp(f->name, function_name))
@@ -39,7 +39,7 @@ bool func_register(void *(*entry_addr)(void *), const char *function_name) {
     void *stack_top, *stack_space;
     unsigned long stack_size = DEFAULT_STACK_SIZE;
     MALLOC_DEFAULT_STACK_WITH_TASK_DONE(stack_top, stack_space)
-    func function = {
+    F function = {
             .id=funcId,
             .name=function_name,
             .entry_addr=entry_addr,
@@ -53,7 +53,7 @@ bool func_register(void *(*entry_addr)(void *), const char *function_name) {
     return true;
 }
 
-func *get_func(char *function_name) {
+F *get_func(char *function_name) {
     func_id f_id;
     f_id = get_funcId_from_name(function_name);
     return f_id == -1 ? NULL : &func_list__[f_id];

@@ -5,7 +5,7 @@
 #ifndef TPFAAS_TLS_H
 #define TPFAAS_TLS_H
 
-#define TLS(t) task *t;\
+#define TLS(t) T *t;\
     get_tls(&t)
 
 int arch_prctl(int code, unsigned long *addr);

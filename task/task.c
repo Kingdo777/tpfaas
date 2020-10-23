@@ -16,7 +16,7 @@ LIST_HEAD(task_list__);
 
 void get_function() {
     TLS(t);
-    func f;
+    F f;
     find:
     if (t->next_func != NULL) {
         return;
@@ -56,8 +56,8 @@ int task_birth(void *arg) {
     return 0;
 }
 
-task *creat_task(func *f) {
-    task *t = malloc(sizeof(task));
+T *creat_task(F *f) {
+    T *t = malloc(sizeof(T));
     init_task(t, f);
     /**
          * 这里仅仅设置了CLONE_VM参数而没有设置CLONE_THREAD flag是一个重大的决定，这意味着，我们clone的线程和posix定义的线程不同
@@ -80,11 +80,11 @@ task *creat_task(func *f) {
     return t;
 }
 
-void init_task(task *t, func *f) {
+void init_task(T *t, F *f) {
     t->futex_word = DEFAULT_FUTEX_WORD;
     MALLOC_DEFAULT_STACK(t->stack.stack_top, t->stack.stack_space);
     t->stack.stack_size = DEFAULT_STACK_SIZE;
     t->next_func = f;
-    INIT_LIST_HEAD(&t->task_list_node);
-    list_add(&t->task_list_node, &task_list__);
+    INIT_LIST_HEAD(&t->task_list);
+    list_add(&t->task_list, &task_list__);
 }
