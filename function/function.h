@@ -33,7 +33,7 @@ typedef struct {
     void *(*entry_addr)(void *);
 
     //资源限制
-    R *res;
+    R *r;
 
     bool concurrent_enable;
     //一个极其重要的对象，表示了F可以在一个T上的并发数目执行I的数目，同时也是单个I队列的长度
@@ -48,9 +48,10 @@ typedef struct {
     //链表头 指向了instance队列
     list_head F_global_I_queue_head;
 
-    pthread_mutex_t func_task_lock;
-    //链表头 指向了为此F服务的所有的T
-    list_head func_task_head;
+    //好像没什么乱用啊，还增复杂度
+//    pthread_mutex_t func_task_lock;
+//    //链表头 指向了为此F服务的所有的T
+//    list_head func_task_head;
 
     //func的全局链表，之前用的是数组，好像在RFIT模型中也没什么卵用
     list_head func_list;
@@ -60,9 +61,8 @@ typedef struct {
 
 #define INIT_F_LIST_HEAD(f) do{  \
     INIT_LIST_HEAD(&f->func_list);\
-    INIT_LIST_HEAD(&f->resource_func_list);\
-    INIT_LIST_HEAD(&f->F_global_I_queue_head);\
-    INIT_LIST_HEAD(&f->func_task_head);\
+    INIT_LIST_HEAD(&f->resource_func_list); \
+    INIT_LIST_HEAD(&f->F_global_I_queue_head); \
 }while(0);
 
 bool func_register(void *(*entry_addr)(void *), const char *function_name, resource res, int concurrent_count);
@@ -72,6 +72,8 @@ F *get_func_from_name(const char *function_name);
 //func_id get_funcId_from_name(const char *function_name);
 F *get_func(const char *function_name);
 
-void create_global_I_wait_queue_and_add_I_to_it(F *f, I *i);
+void create_global_I_queue(F *f, bool is_wait);
+
+void create_global_I_wait_queue(F *f);
 
 #endif //TPFAAS_FUNCTION_H

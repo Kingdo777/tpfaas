@@ -7,6 +7,7 @@
 
 #include "tool/stack.h"
 #include "tool/list_head.h"
+#include "function/function.h"
 #include <string.h>
 
 typedef struct {

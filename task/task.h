@@ -13,6 +13,10 @@
 
 extern void gogo_switch(void *new_stack);
 
+extern void gogo_jmp(void *new_pc);
+
+extern list_head res_list_head;
+
 #define TRY_COUNT 3
 
 #define TASK_MAX_COUNT 10000
@@ -56,9 +60,9 @@ typedef struct T {
 
 //int task_birth(void *arg);
 
-T *creat_new_task(R *r);
+T *creat_T(I *i);
 
-bool init_task(T *t);
+bool init_task(T *t, I *i);
 
 bool bind_os_thread(T *t);
 
@@ -71,5 +75,15 @@ void release_err_task(T *t);
 void release_task_stack_when_sleep(T *t);
 
 bool malloc_task_stack_when_create(T *t);
+
+T *get_T_for_I(I *i);
+
+void put_T_into_R_idle_task_list(T *t, R *r);
+
+void remove_T_from_R_idle_task_list(T *t, R *r);
+
+void put_T_into_R_busy_task_list(T *t, R *r);
+
+void remove_T_from_R_busy_task_list(T *t, R *r);
 
 #endif //TPFAAS_TASK_H

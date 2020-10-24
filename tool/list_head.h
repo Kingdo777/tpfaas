@@ -69,6 +69,19 @@ void list_add(struct list_head *new, struct list_head *head);
          &pos->member != (head);                    \
          pos = list_next_entry(pos, member))
 
+#define list_for_each_entry_prev(pos, head, member)                \
+    for (pos = list_first_entry_prev(head, typeof(*pos), member);    \
+         &pos->member != (head);                    \
+         pos = list_next_entry_prev(pos, member))
+
+///**
+// * list_for_each_prev	-	iterate over a list backwards
+// * @pos:	the &struct list_head to use as a loop cursor.
+// * @head:	the head for your list.
+// */
+//#define list_for_each_prev(pos, head) \
+//	for (pos = (head)->prev; pos != (head); pos = pos->prev)
+
 /**
  * list_entry - get the struct for this entry
  * @ptr:	the &struct list_head pointer.
@@ -87,6 +100,9 @@ void list_add(struct list_head *new, struct list_head *head);
 #define list_first_entry(ptr, type, member) \
     list_entry((ptr)->next, type, member)
 
+#define list_first_entry_prev(ptr, type, member) \
+    list_entry((ptr)->prev, type, member)
+
 /**
  * list_next_entry - get the next element in list
  * @pos:	the type * to cursor
@@ -94,6 +110,9 @@ void list_add(struct list_head *new, struct list_head *head);
  */
 #define list_next_entry(pos, member) \
     list_entry((pos)->member.next, typeof(*(pos)), member)
+
+#define list_next_entry_prev(pos, member) \
+    list_entry((pos)->member.prev, typeof(*(pos)), member)
 
 #define list_entry(ptr, type, member) \
     container_of(ptr, type, member)

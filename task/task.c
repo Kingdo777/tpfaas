@@ -10,6 +10,7 @@
 #include <unistd.h>
 #include <errno.h>
 #include <pthread.h>
+#include <tool/print.h>
 #include "tool/stack.h"
 #include "task.h"
 
@@ -18,11 +19,35 @@ LIST_HEAD(task_list_head);
 __pid_t task_pid_list__[TASK_MAX_COUNT];
 int task_num__ = 0;
 
+I *get_instance_form_R(R *r) {
+
+}
+
+I *get_instance_form_all_R_except_r1(R *r1) {
+
+}
+
+
 void get_instance() {
     TLS(t);
+    I *i;
     find:
     if (t->deal_with != NULL && t->work_for != NULL)
         return;
+    if (t->work_for->concurrent_enable) {
+
+        return;
+    }
+    i = get_instance_form_R(t->work_for->r);
+    if (NULL == i)
+        i = get_instance_form_all_R_except_r1(t->work_for->r);
+    if (NULL != i) {
+        t->work_for = i->f;
+        t->deal_with = i;
+        return;
+    }
+    remove_T_from_R_busy_task_list(t, t->work_for->r);
+    put_T_into_R_idle_task_list(t, t->work_for->r);
     thread_sleep(&t->futex_word);
     goto find;
 }
@@ -33,28 +58,39 @@ void task_done() {
     release_task_stack_when_sleep(t);
     //get_function如果找不到function，那么将一直睡眠，一旦返回说明已经找到
     get_instance();
-    //找到的function被写到了task的next_function中
+    //找到的instance被写到了task的deal_with中
     gogo(t);
 }
 
-T *creat_new_task(R *r) {
+//i可以为NULL
+T *creat_T(I *i) {
     T *t = malloc(sizeof(T));
     if (t == NULL) {
         printf("malloc T space fault\n");
         return NULL;
     }
-    if (init_task(t) && bind_os_thread(t)) {
-        list_add(&r->task_idle_head, &t->task_idle_list);
+    if (init_task(t, i) && bind_os_thread(t)) {
+        //只要不为空就放到busy队列
+        if (i != NULL) {
+            put_T_into_R_busy_task_list(t, i->f->r);
+        }
         return t;
+    }
+    //错误处理：从busy队列中移除，并释放栈空间
+    if (i != NULL) {
+        remove_T_from_R_busy_task_list(t, i->f->r);
     }
     release_err_task(t);
     return NULL;
 }
 
 
-bool init_task(T *t) {
+bool init_task(T *t, I *i) {
     t->futex_word = DEFAULT_FUTEX_WORD;
-    t->work_for = NULL;
+    //如果开启了并发，那么将通过get函数寻找I，并拉去一定数目的I
+    //如果未开启，那么直接制定deal_with，可以立马执行
+    t->work_for = (i == NULL ? NULL : i->f);
+    t->deal_with = (((i == NULL || i->f->concurrent_enable) ? NULL : i));
     if (!malloc_task_stack_when_create(t))
         return false;
     INIT_T_LIST_HEAD(t)
@@ -118,4 +154,84 @@ bool bind_os_thread_(T *t) {
                     CLONE_PARENT_SETTID,
                     NULL, &task_pid_list__[task_num__++], t, &t->tgid);
     return t->tgid != -1;
+}
+
+void put_T_into_R_idle_task_list(T *t, R *r) {
+    pthread_mutex_lock(&r->task_idle_lock);
+    t->work_for = NULL;
+    t->deal_with = NULL;
+    list_add(&t->task_idle_list, &r->task_idle_head);
+    r->task_idle_count++;
+    pthread_mutex_unlock(&r->task_idle_lock);
+}
+
+void remove_T_from_R_idle_task_list(T *t, R *r) {
+    pthread_mutex_lock(&r->task_idle_lock);
+    if (r->task_idle_count > 0) {
+        list_del(&t->task_idle_list);
+        r->task_idle_count--;
+    }
+    pthread_mutex_unlock(&r->task_idle_lock);
+}
+
+void put_T_into_R_busy_task_list(T *t, R *r) {
+    pthread_mutex_lock(&r->task_busy_lock);
+    list_add(&t->task_busy_list, &r->task_busy_head);
+    r->task_busy_count++;
+    pthread_mutex_unlock(&r->task_busy_lock);
+}
+
+void remove_T_from_R_busy_task_list(T *t, R *r) {
+    pthread_mutex_lock(&r->task_busy_lock);
+    if (r->task_busy_count > 0) {
+        list_del(&t->task_busy_list);
+        r->task_busy_count--;
+    }
+    pthread_mutex_unlock(&r->task_busy_lock);
+}
+
+T *get_T_from_R_idle_task_list(R *r) {
+    pthread_mutex_lock(&r->task_idle_lock);
+    if (r->task_idle_count > 0) {
+        T *t;
+        list_for_each_entry(t, &r->task_idle_head, task_idle_list) {
+            list_del(&t->task_idle_list);
+            r->task_idle_count--;
+            return t;
+        }
+        never_reach("cant get idle task\n");
+    } else {
+        return NULL;
+    }
+    pthread_mutex_unlock(&r->task_idle_lock);
+}
+
+T *get_T_from_all_R_idle_task_list_except_R1(R *r1) {
+    R *r;
+    T *t = NULL;
+    list_for_each_entry(r, &res_list_head, res_list) {
+        if (r != r1) {
+            t = get_T_from_R_idle_task_list(r);
+            if (NULL != t)
+                return t;
+        }
+    }
+    return t;
+}
+
+//这里返回的T一定是纯净的，不在任何链表中的(idle\busy\work_for_F)
+//如果返回的是NULL说明是新创建的。直接为I服务不需要唤醒
+T *get_T_for_I(I *i) {
+    T *t;
+    R *r = i->f->r;
+    t = get_T_from_R_idle_task_list(r);
+    if (NULL == t) {
+        t = get_T_from_all_R_idle_task_list_except_R1(r);
+    }
+    if (NULL == t) {
+        creat_T(i);
+        //返回NULL是因为T已经在很好的运行，不需要唤醒
+        return NULL;
+    }
+    return t;
 }

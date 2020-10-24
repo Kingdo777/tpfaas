@@ -16,6 +16,13 @@ extern unsigned long base;
 #define PRINT_LONG_INLINE(n) print_num(n,false)
 #define PRINT_INT_INLINE(n) print_num((long)n,false)
 
+static inline void never_reach(const char *msg) {
+    puts(msg);
+    int m = 0;
+    while (1 / m)
+        m++;
+}
+
 static inline void print_num(long num, bool new_line) {
     char s[50];
     int i = 49;

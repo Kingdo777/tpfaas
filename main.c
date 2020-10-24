@@ -39,7 +39,7 @@ static void function_test() {
     func_register(taskB, "taskB", res, 1);
     func_register(taskC, "taskC", res, 1);
     F *f;
-    list_for_each_entry(f, &func_list_head, func_list) {
+    list_for_each_entry_prev(f, &func_list_head, func_list) {
         const char *func_name = f->name;
         printf("%s RUN:\n", func_name);
         FUN(func_name, NULL);
