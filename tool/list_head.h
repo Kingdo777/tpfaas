@@ -16,10 +16,14 @@ typedef struct list_head {
 #define LIST_HEAD_INIT(name) { &(name), &(name) }
 //创建一个表头
 #define LIST_HEAD(name) \
-    struct list_head name = LIST_HEAD_INIT(name)
+    struct list_head name = LIST_HEAD_INIT(name);
 
 //配置未初始化的task_head
-void INIT_LIST_HEAD(struct list_head *list);
+//配置未初始化的task_head
+static inline void INIT_LIST_HEAD(struct list_head *list) {
+    list->next = list;
+    list->prev = list;
+}
 
 ///******************** 添加节点 ****************************///
 
@@ -131,7 +135,7 @@ int list_empty(const struct list_head *head);
 
 ///******************** 迁移节点 ****************************///
 
-void list_move(struct list_head *list, struct list_head *head, int count);
+void list_move(struct list_head *list, struct list_head *head);
 
 void list_move_tail(struct list_head *list, struct list_head *head);
 

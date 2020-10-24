@@ -35,7 +35,16 @@ void task_done();
 #define POP(s_top, type, data)  data=*(type*)(s_top); \
     s_top+=sizeof(type);
 
-typedef struct stack_struct {
+//将s的栈结构copy到d中(不是数据copy)
+#define COPY_STACK(s, d) do{ \
+        d.stack_space=s.stack_space;  \
+        d.stack_top=s.stack_top;      \
+        d.stack_size=s.stack_size;     \
+        }while(0);
+#define COPY_STACK_DATA(s_top, data_addr, data_size) \
+    s_top-=data_size;                                \
+    memcpy(s_top,data_addr,data_size);
+typedef struct {
     void *stack_space;//用于栈空间的手动释放
     void *stack_top;
     unsigned long stack_size;

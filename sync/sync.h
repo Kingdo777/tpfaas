@@ -6,7 +6,6 @@
 #define TPFAAS_SYNC_H
 
 #include <limits.h>
-#include "thread_pool/tpool.h"
 #include "function/function.h"
 #include "task/task.h"
 

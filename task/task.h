@@ -7,15 +7,15 @@
 
 #include "tool/list_head.h"
 #include "function/function.h"
-#include "thread_pool/tpool.h"
 #include "tool/stack.h"
 #include <stdlib.h>
+#include "instance/instance.h"
 
-extern int task_num__;
-extern pid_t task_pid_list__[TASK_MAX_COUNT];
+extern void gogo_switch(void *new_stack);
 
-#define CREATE_A_TASK(t)  T *t = creat_task(NULL);
-#define CREATE_A_TASK_WITH_FUNC(t, f)  T *t = creat_task(f);
+#define TRY_COUNT 3
+
+#define TASK_MAX_COUNT 10000
 
 typedef struct T {
     //pid
@@ -24,11 +24,12 @@ typedef struct T {
     int futex_word;
     //stack
     stack_struct stack;
-    //next_function
-    F *next_func;
 
     //当前正在为那个F工作
     F *work_for;
+
+    //正在处理Instance
+    I *deal_with;
 
     //一个全局的task链表，目前来说在RFIT模型中没有什么用处
     list_head task_list;
@@ -39,13 +40,28 @@ typedef struct T {
     //链接在F上的同时为该F工作的task
     list_head task_func_list;
 } T;
+#define INIT_T_LIST_HEAD(t) do{  \
+    INIT_LIST_HEAD(&t->task_list);\
+    INIT_LIST_HEAD(&t->task_idle_list);\
+    INIT_LIST_HEAD(&t->task_busy_list);\
+    INIT_LIST_HEAD(&t->task_func_list);\
+}while(0);
 
-int task_birth(void *arg);
+//int task_birth(void *arg);
 
-T *creat_task(F *f);
+T *creat_new_task(R *r);
 
-void init_task(T *t, F *f);
+bool init_task(T *t);
+
+bool bind_os_thread(T *t);
 
 void gogo(T *t);
+
+bool bind_os_thread_(T *t);
+
+void release_err_task(T *t);
+
+void release_task_stack_when_sleep(T *t);
+bool malloc_task_stack_when_create(T *t);
 
 #endif //TPFAAS_TASK_H

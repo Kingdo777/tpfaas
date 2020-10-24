@@ -12,7 +12,7 @@
  *    F的Queue队列结构
  *
  *    +-----+      +------------+      +------------+      +------------+      +------------+
- *    +  F  +----->+ queue_list +----->+ queue_list +----->+ queue_list +----->+ queue_list +-
+ *    +  F  +----->+F_queue_list+----->+F_queue_list+----->+F_queue_list+----->+F_queue_list+-
  *    +-----+      +------------+      +------------+      +------------+      +------------+
  *                        |                    |                  |                   |
  *                     +-----+              +-----+            +-----+             +-----+
@@ -45,13 +45,12 @@ typedef struct {
     list_head instance_list_head;
 } queue_list;
 
-
 typedef struct {
     //是否为等待队列
     bool wait_queue;
     queue_list q_list;
     //表头在F，链接所有的queue_head
-    list_head q_list_list;
+    list_head F_queue_list_list;
 
 } F_queue_list;
 

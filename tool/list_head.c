@@ -13,12 +13,6 @@
 #define LIST_HEAD(name) \
     struct list_head name = LIST_HEAD_INIT(name)
 
-//配置未初始化的task_head
-void INIT_LIST_HEAD(struct list_head *list) {
-    list->next = list;
-    list->prev = list;
-}
-
 ///******************** 添加节点 ****************************///
 
 /**
@@ -99,7 +93,7 @@ int list_empty(const struct list_head *head) {
 
 ///******************** 迁移节点 ****************************///
 
-void list_move(struct list_head *list, struct list_head *head, int count) {
+void list_move(struct list_head *list, struct list_head *head) {
     list_del__(list->prev, list->next);
     list_add(list, head);
 }
@@ -109,20 +103,20 @@ void list_move_tail(struct list_head *list, struct list_head *head) {
     list_add_tail(list, head);
 }
 
-//把链表A中的n个节点移动到B中，且从B的尾部添加
+//把链表A中的n个节点(向后找，队列式取出)移动到B中，且从B的尾部添加
 void move_listA_n_node_2_listB_tail(struct list_head *listA, struct list_head *listB, int n) {
     for (int i = 0; i < n; i++) {
         if (list_empty(listA))
             break;
-        list_move_tail(listA->next, listB);
+        list_move_tail(listA->prev, listB);
     }
 }
 
-//把链表A中的n个节点移动到B中，且从B的头部添加
+//把链表A中的n个节点(向后找，队列式取出)移动到B中，且从B的头部添加
 void move_listA_n_node_2_listB(struct list_head *listA, struct list_head *listB, int n) {
     for (int i = 0; i < n; i++) {
         if (list_empty(listA))
             break;
-        list_move_tail(listA->next, listB);
+        list_move(listA->prev, listB);
     }
 }

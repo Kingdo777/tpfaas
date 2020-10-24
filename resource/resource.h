@@ -15,25 +15,30 @@
 #define DEFAULT_MEM_RESOURCE {}
 #define DEFAULT_RESOURCE {DEFAULT_CPU_RESOURCE,DEFAULT_MEM_RESOURCE}
 
-typedef struct cpu_resource {
+typedef struct {
     //function的资源限制
     //cpu limit
     int cpu_shares;
     int cfs_quota_us;
     int cfs_period_us;
 } cpu_resource;
-
-typedef struct mem_resource {
+#define CPU_RESOURCE_EQUAL(cpu_src, cpu_dst) (cpu_src.cfs_period_us == cpu_dst.cfs_period_us &&\
+                                    cpu_src.cfs_quota_us == cpu_dst.cfs_quota_us &&\
+                                    cpu_src.cpu_shares == cpu_dst.cpu_shares)
+typedef struct {
     //mem limit
     //TODO 因为mem的部分比较复杂，因此暂时不写
 } mem_resource;
+#define MEM_RESOURCE_EQUAL(mem_src, cpu_dst) (true)
 
-typedef struct resource {
+typedef struct {
     cpu_resource cpu;
     mem_resource mem;
 } resource;
+#define RESOURCE_EQUAL(src, dst) (CPU_RESOURCE_EQUAL(src.cpu,dst.cpu)&&MEM_RESOURCE_EQUAL(src.mem,dst.mem))
 
-typedef struct R {
+
+typedef struct {
     resource res;
 
     //用于链接每个list
@@ -45,5 +50,14 @@ typedef struct R {
     //链接在此R上的所有的工作T
     list_head task_busy_head;
 } R;
+
+#define INIT_R_LIST_HEAD(r) do{  \
+    INIT_LIST_HEAD(&r->res_list);\
+    INIT_LIST_HEAD(&r->function_head);\
+    INIT_LIST_HEAD(&r->task_idle_head);\
+    INIT_LIST_HEAD(&r->task_busy_head);\
+}while(0);
+
+R *get_res(resource res);
 
 #endif //TPFAAS_RESOURCE_H

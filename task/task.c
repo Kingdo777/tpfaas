@@ -4,61 +4,101 @@
 #define _GNU_SOURCE
 
 #include <sched.h>
-#include "thread_pool/tpool.h"
 #include "tool/tls.h"
 #include "sync/sync.h"
 #include <stdio.h>
 #include <unistd.h>
+#include <errno.h>
 #include "tool/stack.h"
 #include "task.h"
 
-LIST_HEAD(task_list__);
+LIST_HEAD(task_list_head);
 
-void get_function() {
+__pid_t task_pid_list__[TASK_MAX_COUNT];
+int task_num__ = 0;
+
+void get_instance() {
     TLS(t);
-    F f;
     find:
-    if (t->next_func != NULL) {
+    if (t->deal_with != NULL && t->work_for != NULL)
         return;
-    }
-    //TODO 这里是在一个队列里寻找任务
-    puts("no function to run\n");
     thread_sleep(&t->futex_word);
     goto find;
 }
 
 void task_done() {
     TLS(t);
-    t->next_func = NULL;
+    //清空执行Instance所保留的栈数据
+    release_task_stack_when_sleep(t);
     //get_function如果找不到function，那么将一直睡眠，一旦返回说明已经找到
-    get_function();
+    get_instance();
     //找到的function被写到了task的next_function中
     gogo(t);
 }
 
-//线程刚创建时执行的代码
-int task_birth(void *arg) {
-    TLS(t);
-    if (t->futex_word == DEFAULT_FUTEX_WORD) {
-        puts("child thread get tls true\n");
-    } else {
-        puts("child thread get tls wrong\n");
+T *creat_new_task(R *r) {
+    T *t = malloc(sizeof(T));
+    if (t == NULL) {
+        printf("malloc T space fault\n");
+        return NULL;
     }
-    if (t->next_func != NULL) {
-        //TODO 进入用户函数
-        gogo(t);
+    if (init_task(t) && bind_os_thread(t)) {
+        list_add(&r->task_idle_head, &t->task_idle_list);
+        return t;
     }
-    task_done();
-    //never arrive
-    printf("exit error\n");
-    // 线程是不能执行exit操作的，因为会终止所有的线程，只要是指定了clone的CLONE_VM参数,就会终止所有的线程
-    // exit(1);
-    return 0;
+    release_err_task(t);
+    return NULL;
 }
 
-T *creat_task(F *f) {
-    T *t = malloc(sizeof(T));
-    init_task(t, f);
+
+bool init_task(T *t) {
+    t->futex_word = DEFAULT_FUTEX_WORD;
+    t->work_for = NULL;
+    if (!malloc_task_stack_when_create(t))
+        return false;
+    INIT_T_LIST_HEAD(t)
+    list_add(&t->task_list, &task_list_head);
+    return true;
+}
+
+void release_err_task(T *t) {
+    if (t->stack.stack_space != NULL)
+        free(t->stack.stack_space);
+    if (t != NULL)
+        free(t);
+}
+
+void release_task_stack_when_sleep(T *t) {
+    void *old_stack_space = t->stack.stack_space;
+    malloc_task_stack_when_create(t);
+    gogo_switch(t->stack.stack_top);
+    free(old_stack_space);
+}
+
+bool malloc_task_stack_when_create(T *t) {
+    MALLOC_DEFAULT_STACK(t->stack.stack_top, t->stack.stack_space);
+    if (t->stack.stack_space == NULL) {
+        printf("malloc stack space fault\n");
+        return false;
+    }
+    t->stack.stack_size = DEFAULT_STACK_SIZE;
+    return true;
+}
+
+bool bind_os_thread(T *t) {
+    int try_c = TRY_COUNT;
+    try:
+    if (bind_os_thread_(t)) {
+        printf("clone wrong,try %d\n", TRY_COUNT - try_c + 1);
+        if (try_c-- > 0)
+            goto try;
+        printf("clone fault,errno:%d：\n", errno);
+        return false;
+    }
+    return true;
+}
+
+bool bind_os_thread_(T *t) {
     /**
          * 这里仅仅设置了CLONE_VM参数而没有设置CLONE_THREAD flag是一个重大的决定，这意味着，我们clone的线程和posix定义的线程不同
          * 可以认为我们定义的是一个共享内存地址空间的进程，这样clone的每个进程依然是一个线程组，但是exec、exit仍然还是一个危险的操作
@@ -68,23 +108,11 @@ T *creat_task(F *f) {
          * SIGCHLD，子进程退出时，向父进程发送的signal，如果不发送这个信号，那么是没办法被wait()获取的，只能使用waitpid + __WALL/__WCLONE等参数
          *
         */
-    t->tgid = clone(task_birth, t->stack.stack_top,
+    t->tgid = clone((void *) task_done, t->stack.stack_top,
                     CLONE_VM |
                     CLONE_SETTLS |
                     CLONE_CHILD_SETTID |
                     CLONE_PARENT_SETTID,
                     NULL, &task_pid_list__[task_num__++], t, &t->tgid);
-    if (t->tgid == -1) {
-        printf("clone wrong\n");
-    }
-    return t;
-}
-
-void init_task(T *t, F *f) {
-    t->futex_word = DEFAULT_FUTEX_WORD;
-    MALLOC_DEFAULT_STACK(t->stack.stack_top, t->stack.stack_space);
-    t->stack.stack_size = DEFAULT_STACK_SIZE;
-    t->next_func = f;
-    INIT_LIST_HEAD(&t->task_list);
-    list_add(&t->task_list, &task_list__);
+    return t->tgid != -1;
 }

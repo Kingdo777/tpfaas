@@ -8,10 +8,10 @@
 #include "tool/tls.h"
 #include "tool/list_head.h"
 #include "function/function.h"
-#include "thread_pool/tpool.h"
 #include "sync/sync.h"
 
-extern list_head task_list__;
+extern list_head task_list_head;
+extern list_head func_list_head;
 
 unsigned long printf_fs;
 unsigned long base;
@@ -33,24 +33,25 @@ void *taskC(void *arg) {
 
 
 static void function_test() {
-    func_register(taskA, "taskA");
-    func_register(taskB, "taskB");
-    func_register(taskC, "taskC");
-    printf("taskA:%d\n", get_funcId_from_name("taskA"));
-    printf("taskB:%d\n", get_funcId_from_name("taskB"));
-    printf("taskB:%d\n", get_funcId_from_name("taskC"));
-    FUN("taskA", NULL)
-    FUN("taskB", NULL)
-    FUN("taskC", NULL)
-}
-
-static void create_pool_test(int pool_size) {
-    tpool_create_pool(pool_size);
-    T *t1;
-    list_for_each_entry(t1, &task_list__, task_list) {
-        printf("%d:%d\n", t1->tgid, t1->futex_word);
+    resource res = DEFAULT_RESOURCE;
+    func_register(taskA, "taskA", res, 1);
+    func_register(taskB, "taskB", res, 1);
+    func_register(taskC, "taskC", res, 1);
+    F *f;
+    list_for_each_entry(f, &func_list_head, func_list) {
+        const char *func_name = f->name;
+        printf("%s RUN:\n", func_name);
+        FUN(func_name, NULL);
     }
 }
+
+//static void create_pool_test(int pool_size) {
+//    tpool_create_pool(pool_size);
+//    T *t1;
+//    list_for_each_entry(t1, &task_list_head, task_list) {
+//        printf("%d:%d\n", t1->tgid, t1->futex_word);
+//    }
+//}
 
 static void test_tls_gs() {
     //保留原来的FS
@@ -93,7 +94,7 @@ static void test_tls() {
 _Noreturn static void call_all_task() {
     T *t;
     while (1) {
-        list_for_each_entry(t, &task_list__, task_list) {
+        list_for_each_entry(t, &task_list_head, task_list) {
             thread_wake_up_one(t);
         }
         sleep(3);
@@ -139,7 +140,7 @@ int main() {
 //    printf("printf is Ok %d\n", 666);
 
 //    call_all_task();
-    add_task_2_pool_with_func(get_func("taskA"));
+//    add_task_2_pool_with_func(get_func("taskA"));
 
     sleep(1000000);
     return 0;
