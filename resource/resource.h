@@ -6,6 +6,7 @@
 #define TPFAAS_RESOURCE_H
 
 #include "tool/list_head.h"
+#include "pthread.h"
 
 #define CPU_DEFAULT_SHARES 1024
 #define CPU_DEFAULT_CFS_QUOTA_US -1
@@ -41,14 +42,20 @@ typedef struct {
 typedef struct {
     resource res;
 
+    pthread_mutex_t task_idle_lock;
+    int task_idle_count;
+    //链接在此R上的所有的空闲T
+    list_head task_idle_head;
+
+    pthread_mutex_t task_busy_lock;
+    int task_busy_count;
+    //链接在此R上的所有的工作T
+    list_head task_busy_head;
+
     //用于链接每个list
     list_head res_list;
     //链接在此R上的所有F
     list_head function_head;
-    //链接在此R上的所有的空闲T
-    list_head task_idle_head;
-    //链接在此R上的所有的工作T
-    list_head task_busy_head;
 } R;
 
 #define INIT_R_LIST_HEAD(r) do{  \

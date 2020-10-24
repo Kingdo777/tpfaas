@@ -14,13 +14,13 @@ typedef struct {
 
     stack_struct stack;
 
-    list_head R_global_wait_queue_list;
-    list_head F_local_wait_queue_list;
+    list_head F_global_wait_queue_list;
+    list_head I_local_wait_queue_list;
 } I;
 
 #define INIT_I_LIST_HEAD(i) do{  \
-    INIT_LIST_HEAD(&i->R_global_wait_queue_list);\
-    INIT_LIST_HEAD(&i->R_global_wait_queue_list);\
+    INIT_LIST_HEAD(&i->F_global_wait_queue_list);\
+    INIT_LIST_HEAD(&i->I_local_wait_queue_list);\
 }while(0);
 
 #endif //TPFAAS_INSTANCE_H

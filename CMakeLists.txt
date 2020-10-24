@@ -16,4 +16,4 @@ add_executable(tpfaas
         task/task.c task/task.h task/gogo.s task/gogo.c
         resource/resource.c
         instance/instance.c instance/instance.h
-        doc/RFIT-model.h)
+        doc/RFIT-model.h sync/lock.h)

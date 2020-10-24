@@ -37,28 +37,32 @@ typedef struct {
 
     bool concurrent_enable;
     //一个极其重要的对象，表示了F可以在一个T上的并发数目执行I的数目，同时也是单个I队列的长度
-    int queue_list_max_cap;
+    int concurrent_count;
+
+    //访问下面任何一个变量都需要加相同的锁
+    pthread_mutex_t F_global_I_queue_lock;
     //又是一个及其重要的参数，表示了当前正在处理F的剩余容量
-    int all_queue_list_rest_cap;
+    int all_global_I_queue_rest_cap;
+    //当前队列中等待I的个数
+    int wait_I_count;
+    //链表头 指向了instance队列
+    list_head F_global_I_queue_head;
 
-    //栈结构
-    //stack_struct stack;//栈结构迁移到I中实现，此改动需要i修改的代码量巨大
+    pthread_mutex_t func_task_lock;
+    //链表头 指向了为此F服务的所有的T
+    list_head func_task_head;
 
-    //func的全局链表，目前用的是数组，而且好像在RFIT模型中也没什么卵用
+    //func的全局链表，之前用的是数组，好像在RFIT模型中也没什么卵用
     list_head func_list;
     //链接到R上的func链表
     list_head resource_func_list;
-    //链表头 指向了instance队列
-    list_head F_queue_list_head;
-    //链表头 指向了为此F服务的所有的T
-    list_head func_task;
 } F;
 
 #define INIT_F_LIST_HEAD(f) do{  \
     INIT_LIST_HEAD(&f->func_list);\
     INIT_LIST_HEAD(&f->resource_func_list);\
-    INIT_LIST_HEAD(&f->F_queue_list_head);\
-    INIT_LIST_HEAD(&f->func_task);\
+    INIT_LIST_HEAD(&f->F_global_I_queue_head);\
+    INIT_LIST_HEAD(&f->func_task_head);\
 }while(0);
 
 bool func_register(void *(*entry_addr)(void *), const char *function_name, resource res, int concurrent_count);
@@ -67,5 +71,7 @@ F *get_func_from_name(const char *function_name);
 
 //func_id get_funcId_from_name(const char *function_name);
 F *get_func(const char *function_name);
+
+void create_global_I_wait_queue_and_add_I_to_it(F *f, I *i);
 
 #endif //TPFAAS_FUNCTION_H

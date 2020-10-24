@@ -9,6 +9,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <errno.h>
+#include <pthread.h>
 #include "tool/stack.h"
 #include "task.h"
 
@@ -57,6 +58,8 @@ bool init_task(T *t) {
     if (!malloc_task_stack_when_create(t))
         return false;
     INIT_T_LIST_HEAD(t)
+    t->F_local_wait_queue_size = 0;
+    pthread_mutex_init(&t->F_local_wait_queue_lock, NULL);
     list_add(&t->task_list, &task_list_head);
     return true;
 }

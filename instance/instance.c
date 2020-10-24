@@ -5,6 +5,7 @@
 #include <function/function.h>
 #include <stdio.h>
 #include <tool/queue.h>
+#include <pthread.h>
 #include "instance.h"
 
 bool init_instance(I *i, F *f) {
@@ -45,12 +46,28 @@ I *create_instance(F *f, void *agr, size_t arg_size) {
 }
 
 void add_2_F(I *i) {
-    F_queue_list *fQueueList;
-    //TODO 应该最好是倒查，让非wait的在前面，下面的操作要加锁了
+    if (i->f->concurrent_enable) {
+        F_global_I_queue *fQueueList;
+        pthread_mutex_lock(&i->f->F_global_I_queue_lock);
+        if (i->f->all_global_I_queue_rest_cap < 1) {
+            //TODO 当前已经没有可用的位置了,说明已经到达了T的处理极限
+        }
+        list_for_each_entry(fQueueList, &i->f->F_global_I_queue_head, F_global_I_queue_list) {
+            if (fQueueList->is_wait_queue &&
+                fQueueList->i_queue->queue_list_size < fQueueList->i_queue->queue_list_max_cap) {
 
-    list_for_each_entry(fQueueList, &i->f->F_queue_list_head, F_queue_list_list){
-
+                goto unlock;
+            }
+        }
+        //到这里说明wait_queue也满了,需要新建更多的wait_queue
+        create_global_I_wait_queue_and_add_I_to_it(i->f, i);
+        //TODO 唤醒操作!!!
+        unlock:
+        pthread_mutex_unlock(&i->f->F_global_I_queue_lock);
+    } else {
+        //TODO 否则应该直接找一个空闲的T,将I直接追加到T的deal_with上,而不需要如此繁琐的过程,这里是参考了open_whisk
     }
+
 }
 
 void receive_request(F *f, void *agr, size_t arg_size) {

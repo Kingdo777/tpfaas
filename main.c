@@ -9,6 +9,7 @@
 #include "tool/list_head.h"
 #include "function/function.h"
 #include "sync/sync.h"
+#include "sync/lock.h"
 
 extern list_head task_list_head;
 extern list_head func_list_head;
@@ -45,13 +46,6 @@ static void function_test() {
     }
 }
 
-//static void create_pool_test(int pool_size) {
-//    tpool_create_pool(pool_size);
-//    T *t1;
-//    list_for_each_entry(t1, &task_list_head, task_list) {
-//        printf("%d:%d\n", t1->tgid, t1->futex_word);
-//    }
-//}
 
 static void test_tls_gs() {
     //保留原来的FS
@@ -130,6 +124,7 @@ static inline void stack_op_test() {
 
 int main() {
     GET_PRINTF_FS()
+    INIT_LOCK()
 //    test();
     function_test();
 

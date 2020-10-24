@@ -11,6 +11,7 @@
 /**
  *    F的Queue队列结构
  *
+ *                    run_queue          wait_queue          wait_queue          wait_queue
  *    +-----+      +------------+      +------------+      +------------+      +------------+
  *    +  F  +----->+F_queue_list+----->+F_queue_list+----->+F_queue_list+----->+F_queue_list+-
  *    +-----+      +------------+      +------------+      +------------+      +------------+
@@ -18,22 +19,22 @@
  *                     +-----+              +-----+            +-----+             +-----+
  *                     +  I  +              +  I  +            +  I  +             +  I  +
  *                     +-----+              +-----+            +-----+             +-----+
- *                        |                    |                  |                   |
- *                     +-----+              +-----+            +-----+             +-----+
- *                     +  I  +              +  I  +            +  I  +             +  I  +
- *                     +-----+              +-----+            +-----+             +-----+
- *                        |                    |                  |                   |
- *                     +-----+              +-----+            +-----+             +-----+
- *                     +  I  +              +  I  +            +  I  +             +  I  +
- *                     +-----+              +-----+            +-----+             +-----+
- *                        |                    |                  |                   |
- *                     +-----+              +-----+            +-----+             +-----+
- *                     +  I  +              +  I  +            +  I  +             +  I  +
- *                     +-----+              +-----+            +-----+             +-----+
- *                        |                    |                  |                   |
- *                     +-----+              +-----+            +-----+             +-----+
- *                     +  I  +              +  I  +            +  I  +             +  I  +
- *                     +-----+              +-----+            +-----+             +-----+
+ *                                             |                  |                   |
+ *                                          +-----+            +-----+             +-----+
+ *                                          +  I  +            +  I  +             +  I  +
+ *                                          +-----+            +-----+             +-----+
+ *                                             |                  |                   |
+ *                                          +-----+            +-----+             +-----+
+ *                                          +  I  +            +  I  +             +  I  +
+ *                                          +-----+            +-----+             +-----+
+ *                                             |                  |                   |
+ *                                          +-----+            +-----+             +-----+
+ *                                          +  I  +            +  I  +             +  I  +
+ *                                          +-----+            +-----+             +-----+
+ *                                             |                  |                   |
+ *                                          +-----+            +-----+             +-----+
+ *                                          +  I  +            +  I  +             +  I  +
+ *                                          +-----+            +-----+             +-----+
  */
 
 typedef struct {
@@ -43,16 +44,20 @@ typedef struct {
     int queue_list_max_cap;
     //表头，链接队列中的所有I
     list_head instance_list_head;
-} queue_list;
+} instance_queue;
+
+typedef struct {
+    instance_queue *q_list;
+} T_local_I_list;
 
 typedef struct {
     //是否为等待队列
-    bool wait_queue;
-    queue_list q_list;
+    bool is_wait_queue;
+    instance_queue *i_queue;
     //表头在F，链接所有的queue_head
-    list_head F_queue_list_list;
+    list_head F_global_I_queue_list;
 
-} F_queue_list;
+} F_global_I_queue;
 
 
 #endif //TPFAAS_QUEUE_H

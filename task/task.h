@@ -31,6 +31,12 @@ typedef struct T {
     //正在处理Instance
     I *deal_with;
 
+    //本地队列的长度
+    pthread_mutex_t F_local_wait_queue_lock;
+    int F_local_wait_queue_size;
+    //表头,本地的I队列
+    list_head F_local_wait_queue_head;
+
     //一个全局的task链表，目前来说在RFIT模型中没有什么用处
     list_head task_list;
     //链接在R上的空闲链表
@@ -45,6 +51,7 @@ typedef struct T {
     INIT_LIST_HEAD(&t->task_idle_list);\
     INIT_LIST_HEAD(&t->task_busy_list);\
     INIT_LIST_HEAD(&t->task_func_list);\
+    INIT_LIST_HEAD(&t->F_local_wait_queue_head);\
 }while(0);
 
 //int task_birth(void *arg);
@@ -62,6 +69,7 @@ bool bind_os_thread_(T *t);
 void release_err_task(T *t);
 
 void release_task_stack_when_sleep(T *t);
+
 bool malloc_task_stack_when_create(T *t);
 
 #endif //TPFAAS_TASK_H
