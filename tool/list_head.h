@@ -74,14 +74,6 @@ void list_add(struct list_head *new, struct list_head *head);
          &pos->member != (head);                    \
          pos = list_next_entry_prev(pos, member))
 
-///**
-// * list_for_each_prev	-	iterate over a list backwards
-// * @pos:	the &struct list_head to use as a loop cursor.
-// * @head:	the head for your list.
-// */
-//#define list_for_each_prev(pos, head) \
-//	for (pos = (head)->prev; pos != (head); pos = pos->prev)
-
 /**
  * list_entry - get the struct for this entry
  * @ptr:	the &struct list_head pointer.
@@ -97,6 +89,19 @@ void list_add(struct list_head *new, struct list_head *head);
  *
  * Note, that list is expected to be not empty.
  */
+
+#define take_an_entry_from_head(pos, head, member) do{ \
+        pos=NULL;\
+        if(!list_empty(head)){                             \
+            pos = list_first_entry(head, typeof(*pos), member); \
+        }                                                       \
+    }while(0);
+#define take_an_entry_from_tail(pos, head, member) do{ \
+    pos=NULL;\
+    if(!list_empty(head)){                             \
+       pos = list_first_entry_prev(head, typeof(*pos), member) \
+    }                                                       \
+    }while(0);
 #define list_first_entry(ptr, type, member) \
     list_entry((ptr)->next, type, member)
 

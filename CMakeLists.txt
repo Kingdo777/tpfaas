@@ -11,9 +11,9 @@ add_executable(tpfaas
         invoke.c invoke.h
         function/function.c function/function.h
         resource/resource.h
-        sync/sync.c sync/sync.h
+        sync/sync.c sync/sync.h sync/lock.h
         tool/list_head.h tool/tls.c tool/tls.h tool/print.h tool/stack.h tool/queue.h tool/list_head.c
         task/task.c task/task.h task/gogo.s task/gogo.c
         resource/resource.c
         instance/instance.c instance/instance.h
-        doc/RFIT-model.h sync/lock.h)
+        doc/RFIT-model.h)

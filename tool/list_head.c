@@ -7,12 +7,6 @@
 
 #include <stddef.h>
 
-//初始化并返回一个list_head结构
-#define LIST_HEAD_INIT(name) { &(name), &(name) }
-//创建一个表头
-#define LIST_HEAD(name) \
-    struct list_head name = LIST_HEAD_INIT(name)
-
 ///******************** 添加节点 ****************************///
 
 /**
@@ -103,6 +97,7 @@ void list_move_tail(struct list_head *list, struct list_head *head) {
     list_add_tail(list, head);
 }
 
+//下面两个函数,不敢用啊,因为会嵌使用锁;
 //把链表A中的n个节点(向后找，队列式取出)移动到B中，且从B的尾部添加
 void move_listA_n_node_2_listB_tail(struct list_head *listA, struct list_head *listB, int n) {
     for (int i = 0; i < n; i++) {

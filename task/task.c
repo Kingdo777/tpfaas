@@ -12,6 +12,7 @@
 #include <pthread.h>
 #include <tool/print.h>
 #include "tool/stack.h"
+#include "tool/queue.h"
 #include "task.h"
 
 LIST_HEAD(task_list_head);
@@ -20,13 +21,46 @@ __pid_t task_pid_list__[TASK_MAX_COUNT];
 int task_num__ = 0;
 
 I *get_instance_form_R(R *r) {
-
+    I *i = NULL;
+    F *f;
+    F_global_I_queue *fGlobalIQueue = NULL;
+    list_for_each_entry(f, &r->function_head, func_list) {
+        if (f->concurrent_enable) {
+            pthread_mutex_lock(&f->F_global_I_queue_lock);
+            if (f->wait_I_count > 0) {
+                list_for_each_entry(fGlobalIQueue, &f->F_global_I_queue_head, F_global_I_queue_list) {
+                    if (fGlobalIQueue->i_queue->queue_list_size > 0 &&
+                        !list_empty(&fGlobalIQueue->i_queue->instance_list_head)) {
+                        take_an_entry_from_head(i, &fGlobalIQueue->i_queue->instance_list_head,
+                                                F_global_wait_queue_list)
+                        list_del(&i->F_global_wait_queue_list);
+                        fGlobalIQueue->i_queue->queue_list_size--;
+                        f->wait_I_count--;
+                        break;
+                    }
+                }
+            }
+            pthread_mutex_unlock(&f->F_global_I_queue_lock);
+        }
+        if (NULL != i) {
+            break;
+        }
+    }
+    return i;
 }
 
 I *get_instance_form_all_R_except_r1(R *r1) {
-
+    R *r;
+    I *i = NULL;
+    list_for_each_entry(r, &res_list_head, res_list) {
+        if (r != r1) {
+            i = get_instance_form_R(r);
+            if (NULL != i)
+                break;
+        }
+    }
+    return i;
 }
-
 
 void get_instance() {
     TLS(t);
