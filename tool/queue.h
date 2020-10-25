@@ -47,7 +47,7 @@ typedef struct {
 } instance_queue;
 
 typedef struct {
-    instance_queue *q_list;
+    instance_queue *i_queue;
 } T_local_I_list;
 
 typedef struct {

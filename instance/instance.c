@@ -102,6 +102,7 @@ void wake_T_for_I(I *i) {
         //the T isn't new create,need sleep it
         if (!i->f->concurrent_enable) {
             t->deal_with = i;
+            t->direct_run = true;
         }
         t->work_for = i->f;
         put_T_into_R_busy_task_list(t, i->f->r);

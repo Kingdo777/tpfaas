@@ -99,7 +99,7 @@ void list_add(struct list_head *new, struct list_head *head);
 #define take_an_entry_from_tail(pos, head, member) do{ \
     pos=NULL;\
     if(!list_empty(head)){                             \
-       pos = list_first_entry_prev(head, typeof(*pos), member) \
+       pos = list_first_entry_prev(head, typeof(*pos), member); \
     }                                                       \
     }while(0);
 #define list_first_entry(ptr, type, member) \

@@ -10,8 +10,9 @@
 #include <unistd.h>
 #include <errno.h>
 #include <pthread.h>
-#include <tool/print.h>
+#include "tool/print.h"
 #include "tool/stack.h"
+#include "tool/list_head.h"
 #include "tool/queue.h"
 #include "task.h"
 
@@ -20,61 +21,224 @@ LIST_HEAD(task_list_head);
 __pid_t task_pid_list__[TASK_MAX_COUNT];
 int task_num__ = 0;
 
-I *get_instance_form_R(R *r) {
+/**
+ * get_instance 流程：
+ *  若concurrent_enable==true:
+ *    1. (1) 尝试从T的本地任务队列获取一个I-local（任务获取前，本地任务队列上锁<1>）
+ *       (2) 判断T的本地任务队列的数目是否小于容量的一半？
+ *           是：                                         （判断后，本地任务队列解锁<1> 全局任务队列上锁<1>）
+ *              1）从F全局的I队列中尝试拉取(cap/2)数目的任务放到自己的本地队列中  （拉取之后，全局任务队列解锁<1>本地任务队列上锁<2>; 放入本地后，本地任务队列解锁<2>）
+ *              2）判断I-local是否为NULL？
+ *                 是：跳转到（3）
+ *                 否：直接返回I-local，函数结束
+ *           否：情况能保证I-local一定不为空，直接返回I-local，函数结束
+ *       (3) 再次尝试从T的本地任务队列获取一个I-local（任务获取前，本地任务队列上锁<3>）
+ *      （4） 无论I-local，是否为NULL，都直接返回    (任务获取后，本地任务队列解锁<3>）
+ *  若concurrent_enable==false || concurrent_enable==true:(下面的操作则与之前绑定的F是否为并发F无关没有关系)
+ *   2. (到达2,说明1的返回结果为NULL，即对应F的全局队列已经没有任何任务可以处理)
+ *      (1) 遍历当前R的所有可并发F，判断其全局任务队列是否为空 （判断之前，该全局任务队列上锁<2>）
+ *          若空：寻找下一个 （该全局任务队列解锁<2>）
+ *          若不空：
+ *              1) 修改自己的work_for
+ *              2）从该F全局的I队列中尝试拉取(cap/2)数目的任务放到自己的本地队列中 （拉取之后，该全局任务队列解锁<2>本地任务队列上锁<4>; 放入本地后，本地任务队列解锁<4>）
+ *              3) 从T的本地任务队列获取一个I-local（任务获取前，本地任务队列上锁<5> 任务获取后，本地任务队列解锁<5>）
+ *              4）I-local一定不为NULL，返回，函数结束
+ *      (2) 遍历结束，函数未返回，说明当前R的所有F都不存在任务可用
+ *   3. 任务偷取
+ *      (1) 遍历当前R的所有为可并发F服务的busy_T_list，判断其本地队列的大小 (判断之前，该本地任务队列上锁<1>）
+ *          若空：寻找下一个 （该本地任务队列解锁<1>）
+ *          若不空：
+ *              1) 修改自己的work_for
+ *              2）从该本地I队列中尝试拉取(list_current_count/2)数目的任务放到自己的本地队列中 (拉取之后，该本地任务队列解锁<1>本地任务队列上锁<6>; 放入本地后，本地任务队列解锁<6>）
+ *              3) 从T的本地任务队列获取一个I-local（任务获取前，本地任务队列上锁<7> 任务获取后，本地任务队列解锁<7>）
+ *              4）I-local一定不为NULL，返回，函数结束
+ *      (2) 遍历结束，函数未返回，说明当前R的所有F都不存在任务可用
+ *   4. 尽力了，当前R已经实在无任务可以执行，放入idle_task_list
+ *
+ *   note:
+ *      we don't get I from other R'_F'_global_I_queue or  R'_busy_task_list,
+ *      because when a busy_R need an idle_T, it will steal one from other R.
+ *
+ *
+ *
+ * */
+
+I *take_I_from_I_local_task_queue_unsafe(T *t) {
+    I *i;
+    if (t->i_queue->i_queue->queue_list_size > 0) {
+        take_an_entry_from_tail(i, &t->i_queue->i_queue->instance_list_head, I_local_wait_queue_list)
+        list_del(&i->I_local_wait_queue_list);
+        t->i_queue->i_queue->queue_list_size--;
+    }
+    return i;
+}
+
+I *take_I_from_I_local_task_queue_safe(T *t) {
+    I *i;
+    pthread_mutex_lock(&t->T_local_I_queue_lock);
+    i = take_I_from_I_local_task_queue_unsafe(t);
+    pthread_mutex_unlock(&t->T_local_I_queue_lock);
+    return i;
+}
+
+void cut_n_T_from_F_global_task_list_unsafe(T *t, int count) {
+    //TODO 截取F_global_task_list
+
+//        F_global_I_queue *fGlobalIQueue = NULL;
+//        list_for_each_entry(fGlobalIQueue, &f->F_global_I_queue_head, F_global_I_queue_list) {
+//            if (fGlobalIQueue->i_queue->queue_list_size > 0 &&
+//                !list_empty(&fGlobalIQueue->i_queue->instance_list_head)) {
+//                take_an_entry_from_head(i, &fGlobalIQueue->i_queue->instance_list_head,
+//                                        F_global_wait_queue_list)
+//                list_del(&i->F_global_wait_queue_list);
+//                fGlobalIQueue->i_queue->queue_list_size--;
+//                f->wait_I_count--;
+//                break;
+//            }
+//        }
+}
+
+void cut_n_T_from_T_local_task_list_unsafe(T *t, int count) {
+    //TODO 截取T_local_task_list
+}
+
+void append_n_T_to_T_local_task_list_safe(T *t, int count) {
+    F *f = t->work_for;
+    pthread_mutex_lock(&t->T_local_I_queue_lock);
+    t->i_queue->i_queue->queue_list_max_cap = f->concurrent_count;
+    //TODO,追加到T
+    t->i_queue->i_queue->queue_list_size = count;
+    pthread_mutex_unlock(&t->T_local_I_queue_lock);
+}
+
+int try_get_n_I_from_F_global_task_list_2_T_local_task_list_safe(T *t, int count) {
+    F *f = t->work_for;
+    pthread_mutex_lock(&f->F_global_I_queue_lock);
+    int pull_count = count < f->wait_I_count ? count : f->wait_I_count;
+    if (pull_count > 0) {
+        cut_n_T_from_F_global_task_list_unsafe(t, pull_count);
+        pthread_mutex_unlock(&f->F_global_I_queue_lock);
+    } else {
+        pthread_mutex_unlock(&f->F_global_I_queue_lock);
+        return 0;
+    }
+    append_n_T_to_T_local_task_list_safe(t, pull_count);
+    return pull_count;
+}
+
+int try_get_n_I_from_other_T_local_task_list_2_T_local_task_list_safe(T *t, T *other_t) {
+    pthread_mutex_lock(&other_t->T_local_I_queue_lock);
+    int pull_count = other_t->i_queue->i_queue->queue_list_size / 2;
+    if (pull_count > 0) {
+        cut_n_T_from_T_local_task_list_unsafe(t, pull_count);
+        pthread_mutex_unlock(&other_t->T_local_I_queue_lock);
+    } else {
+        pthread_mutex_unlock(&other_t->T_local_I_queue_lock);
+        return 0;
+    }
+    append_n_T_to_T_local_task_list_safe(t, pull_count);
+    return pull_count;
+}
+
+/**
+ * 实现步骤1：
+ * */
+I *get_I_from_I_local_task_queue__and__supply_I_from_F_if_need(T *t) {
+    if (!t->work_for->concurrent_enable) {
+        return NULL;
+    }
+    I *i = NULL;
+    pthread_mutex_lock(&t->T_local_I_queue_lock);
+    //// 1. (1)
+    i = take_I_from_I_local_task_queue_unsafe(t);
+    //// 1. (2)
+    bool need_supply_I_from_F = (t->i_queue->i_queue->queue_list_size <= t->i_queue->i_queue->queue_list_max_cap);
+    pthread_mutex_unlock(&t->T_local_I_queue_lock);
+    //// 1. (2) 是：
+    if (need_supply_I_from_F) {
+        //// 1. (2) 是  1）
+        try_get_n_I_from_F_global_task_list_2_T_local_task_list_safe(t, t->work_for->concurrent_count / 2);
+        //// 1. (2) 是  2）
+        if (NULL != i) {
+            //// 1. (2) 是  2）否
+            return i;
+        }
+    } else {
+        //// 1. (2) 否：
+        if (i == NULL) {
+            never_reach("can't get instance - q1\n");
+        }
+        return i;
+    }
+    //// 1. (2) 是  2）是
+    //// 1. (3)
+    i = take_I_from_I_local_task_queue_safe(t);
+    //// 1. (4)
+    return i;
+}
+
+/**
+ * 实现步骤2 (具体实现上处于代码优化的考虑和算法并不完全一致)：
+ * */
+I *get_instance_form_R_all_F_global_queue(T *t) {
     I *i = NULL;
     F *f;
-    F_global_I_queue *fGlobalIQueue = NULL;
+    R *r = t->work_for->r;
     list_for_each_entry(f, &r->function_head, func_list) {
         if (f->concurrent_enable) {
-            pthread_mutex_lock(&f->F_global_I_queue_lock);
-            if (f->wait_I_count > 0) {
-                list_for_each_entry(fGlobalIQueue, &f->F_global_I_queue_head, F_global_I_queue_list) {
-                    if (fGlobalIQueue->i_queue->queue_list_size > 0 &&
-                        !list_empty(&fGlobalIQueue->i_queue->instance_list_head)) {
-                        take_an_entry_from_head(i, &fGlobalIQueue->i_queue->instance_list_head,
-                                                F_global_wait_queue_list)
-                        list_del(&i->F_global_wait_queue_list);
-                        fGlobalIQueue->i_queue->queue_list_size--;
-                        f->wait_I_count--;
-                        break;
-                    }
+            t->work_for = f;
+            if (try_get_n_I_from_F_global_task_list_2_T_local_task_list_safe(t, t->work_for->concurrent_count / 2) >
+                0) {
+                i = take_I_from_I_local_task_queue_safe(t);
+                if (i == NULL) {
+                    never_reach("can't get instance - q2\n");
                 }
+                return i;
             }
-            pthread_mutex_unlock(&f->F_global_I_queue_lock);
-        }
-        if (NULL != i) {
-            break;
         }
     }
     return i;
 }
 
-I *get_instance_form_all_R_except_r1(R *r1) {
-    R *r;
+/**
+ * 实现步骤3：
+ * */
+I *steal_instance_form_R_all_busy_T_local_queue(T *t) {
     I *i = NULL;
-    list_for_each_entry(r, &res_list_head, res_list) {
-        if (r != r1) {
-            i = get_instance_form_R(r);
-            if (NULL != i)
-                break;
+    F *f;
+    R *r = t->work_for->r;
+    T *other_t;
+    list_for_each_entry(other_t, &r->task_busy_head, task_busy_list) {
+        f = other_t->work_for;
+        if (f->concurrent_enable) {
+            t->work_for = f;
+            if (try_get_n_I_from_other_T_local_task_list_2_T_local_task_list_safe(t, other_t) >
+                0) {
+                i = take_I_from_I_local_task_queue_safe(t);
+                if (i == NULL) {
+                    never_reach("can't get instance - q3\n");
+                }
+                return i;
+            }
         }
     }
     return i;
 }
 
-void get_instance() {
-    TLS(t);
+void get_instance(T *t) {
     I *i;
     find:
-    if (t->deal_with != NULL && t->work_for != NULL)
-        return;
-    if (t->work_for->concurrent_enable) {
-
+    if (t->deal_with != NULL && t->work_for != NULL && t->work_for->concurrent_enable && t->direct_run) {
+        t->direct_run = false;
         return;
     }
-    i = get_instance_form_R(t->work_for->r);
-    if (NULL == i)
-        i = get_instance_form_all_R_except_r1(t->work_for->r);
+    i = get_I_from_I_local_task_queue__and__supply_I_from_F_if_need(t);
+    if (NULL == i) {
+        i = get_instance_form_R_all_F_global_queue(t);
+    }
+    if (NULL == i) {
+        i = steal_instance_form_R_all_busy_T_local_queue(t);
+    }
     if (NULL != i) {
         t->work_for = i->f;
         t->deal_with = i;
@@ -91,7 +255,7 @@ void task_done() {
     //清空执行Instance所保留的栈数据
     release_task_stack_when_sleep(t);
     //get_function如果找不到function，那么将一直睡眠，一旦返回说明已经找到
-    get_instance();
+    get_instance(t);
     //找到的instance被写到了task的deal_with中
     gogo(t);
 }
@@ -125,11 +289,18 @@ bool init_task(T *t, I *i) {
     //如果未开启，那么直接制定deal_with，可以立马执行
     t->work_for = (i == NULL ? NULL : i->f);
     t->deal_with = (((i == NULL || i->f->concurrent_enable) ? NULL : i));
+    t->direct_run = (((i == NULL || i->f->concurrent_enable) ? false : true));
     if (!malloc_task_stack_when_create(t))
         return false;
     INIT_T_LIST_HEAD(t)
-    t->F_local_wait_queue_size = 0;
-    pthread_mutex_init(&t->F_local_wait_queue_lock, NULL);
+
+    t->i_queue = malloc(sizeof(T_local_I_list));
+    t->i_queue->i_queue = malloc(sizeof(instance_queue));
+    t->i_queue->i_queue->queue_list_size = 0;
+    t->i_queue->i_queue->queue_list_max_cap = (((i == NULL || !i->f->concurrent_enable) ? 0 : i->f->concurrent_count));
+    INIT_LIST_HEAD(&t->i_queue->i_queue->instance_list_head);
+
+    pthread_mutex_init(&t->T_local_I_queue_lock, NULL);
     list_add(&t->task_list, &task_list_head);
     return true;
 }
@@ -222,6 +393,7 @@ void remove_T_from_R_busy_task_list(T *t, R *r) {
         r->task_busy_count--;
     }
     pthread_mutex_unlock(&r->task_busy_lock);
+    //TODO 需要修改T的资源配置
 }
 
 T *get_T_from_R_idle_task_list(R *r) {

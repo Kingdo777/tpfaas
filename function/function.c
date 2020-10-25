@@ -67,11 +67,9 @@ void init_func(F *f, void *(*entry_addr)(void *), const char *function_name, res
     f->wait_I_count = 0;
     if (f->concurrent_enable) {
         create_global_I_run_queue(f);
-    } else {
-        //TODO 如果是1,那么没有如此复杂的流程
+        pthread_mutex_init(&f->F_global_I_queue_lock, NULL);
     }
-    pthread_mutex_init(&f->F_global_I_queue_lock, NULL);
-//    pthread_mutex_init(&f->func_task_lock, NULL);
+
 }
 
 bool func_register(void *(*entry_addr)(void *), const char *function_name, resource res, int concurrent_count) {
@@ -79,7 +77,6 @@ bool func_register(void *(*entry_addr)(void *), const char *function_name, resou
         return false;
     F *f = (F *) malloc(sizeof(F));
     init_func(f, entry_addr, function_name, res, concurrent_count);
-    //TODO 下面的操作目前来看暂时是不需要加锁的
     list_add(&f->r->function_head, &f->func_list);
     list_add(&f->func_list, &func_list_head);
     return true;
