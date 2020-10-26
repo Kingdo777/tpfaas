@@ -110,6 +110,13 @@ void wake_T_for_I(I *i) {
     }
 }
 
+//这里仅仅释放了I的空间,不包括I的栈空间
+void release_instance_space(I *i) {
+    if (i != NULL) {
+        free(i);
+    }
+}
+
 void receive_request(F *f, void *agr, size_t arg_size) {
     bool need_wake_T;
     I *i = create_instance(f, agr, arg_size);

@@ -24,4 +24,6 @@ typedef struct {
     INIT_LIST_HEAD(&i->I_local_wait_queue_list);\
 }while(0);
 
+void release_instance_space(I *i);
+
 #endif //TPFAAS_INSTANCE_H

@@ -261,8 +261,12 @@ void get_instance(T *t) {
 
 void task_done() {
     TLS(t);
-    //清空执行Instance所保留的栈数据
-    release_task_stack_when_sleep(t);
+    if (t->deal_with != NULL && !t->direct_run) {
+        //清空执行Instance所保留的栈数据
+        release_task_stack_when_sleep(t);
+        //删除instance
+        release_instance_space(t->deal_with);
+    }
     //get_function如果找不到function，那么将一直睡眠，一旦返回说明已经找到
     get_instance(t);
     //找到的instance被写到了task的deal_with中
