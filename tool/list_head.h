@@ -12,6 +12,47 @@ typedef struct list_head {
     struct list_head *next, *prev;
 } list_head;
 
+//  一个典型的list_head结构:
+//
+//  +------------------------------------------------------------------------------------------------------+
+//  |                     +-------+        +-------+        +-------+        +-------+        +-------+    |
+//  |                     |   v1  |        |   v1  |        |   v1  |        |   v1  |        |   v1  |    |
+//  |                     |   v2  |        |   v2  |        |   v2  |        |   v2  |        |   v2  |    |
+//  |    +-------+        +-------+        +-------+        +-------+        +-------+        +-------+    |
+//  +--->|  next |------->|  next |------->|  next |------->|  next |------->|  next |------->|  next |----+
+//       +-------+        +-------+        +-------+        +-------+        +-------+        +-------+
+//  +----| prev  |<-------| prev  |<-------| prev  |<-------| prev  |<-------| prev  |<-------| prev  |<---+
+//  |    +-------+        +-------+        +-------+        +-------+        +-------+        +-------+    |
+//  |                                                                                                      |
+//  +------------------------------------------------------------------------------------------------------+
+//
+//  一个list_head_chain
+//  +------------------------------------------------------------------------------------------------------+
+//  |                                 +---------------------------------------------------+                |
+//  |                     +-------+   |    +-------+        +-------+        +-------+    |   +-------+    |
+//  |                     |   v1  |   |    |   v1  |        |   v1  |        |   v1  |    |   |   v1  |    |
+//  |                     |   v2  |   |    |   v2  |        |   v2  |        |   v2  |    |   |   v2  |    |
+//  |    +-------+        +-------+   |    +-------+        +-------+        +-------+    |   +-------+    |
+//  +--->|  next |------->|  next |---+    |  next |------->|  next |------->|  next |    +-->|  next |----+
+//       +-------+        +-------+        +-------+        +-------+        +-------+        +-------+
+//  +----| prev  |<-------| prev  |<--+    | prev  |<-------| prev  |<-------| prev  |    +---| prev  |<---+
+//  |    +-------+        +-------+   |    +-------+        +-------+        +-------+    |   +-------+    |
+//  |                                 |       |                                  |        |                |
+//  |                                 +-------+----------------------------------+--------+                |
+//  +-----------------------------------------+----------------------------------+-------------------------+
+//                                            |                                  |
+//                                            |                                  |
+//                                            |             +-------+            |
+//                                            +--<-----<----|  head |            |
+//                                                          +-------+            |
+//                                                          | tail  |---->--->---+
+//                                                          +-------+
+
+
+typedef struct {
+    struct list_head *head, *tail;
+} list_head_chain;
+
 //初始化并返回一个list_head结构
 #define LIST_HEAD_INIT(name) { &(name), &(name) }
 //创建一个表头
@@ -56,6 +97,23 @@ void list_add_tail(struct list_head *new, struct list_head *head);
 void list_add(struct list_head *new, struct list_head *head);
 
 ///******************** 链表遍历 ****************************///
+
+/**
+ * list_for_each	-	iterate over a list
+ * @pos:	the &struct list_head to use as a loop cursor.
+ * @head:	the head for your list.
+ */
+#define list_for_each(pos, head) \
+    for (pos = (head)->next; pos != (head); pos = pos->next)
+
+/**
+ * list_for_each_prev	-	iterate over a list backwards
+ * @pos:	the &struct list_head to use as a loop cursor.
+ * @head:	the head for your list.
+ */
+#define list_for_each_prev(pos, head) \
+    for (pos = (head)->prev; pos != (head); pos = pos->prev)
+
 
 /**
  * 遍历链表,下面都是遍历所需要的子宏
@@ -169,5 +227,10 @@ void move_listA_n_node_2_listB_tail(struct list_head *listA, struct list_head *l
 //把链表A中的n个节点移动到B中，且从B的头部添加
 void move_listA_n_node_2_listB(struct list_head *listA, struct list_head *listB, int n);
 
+void splice_tow_list_chain(list_head_chain *l1, list_head_chain *l2);
+
+int try_take_a_N_size_chain_from_list(list_head_chain *l_chain, list_head *head, int N);
+
+void append_a_list_chain_2_list_head(list_head_chain *l_chain, list_head *head);
 
 #endif //TPFAAS_LIST_HEAD_H

@@ -115,3 +115,59 @@ void move_listA_n_node_2_listB(struct list_head *listA, struct list_head *listB,
         list_move(listA->prev, listB);
     }
 }
+
+//  一个list_head_chain
+//  +------------------------------------------------------------------------------------------------------+
+//  |                                 +---------------------------------------------------+                |
+//  |                     +-------+   |    +-------+        +-------+        +-------+    |   +-------+    |
+//  |                     |   v1  |   |    |   v1  |        |   v1  |        |   v1  |    |   |   v1  |    |
+//  |                     |   v2  |   |    |   v2  |        |   v2  |        |   v2  |    |   |   v2  |    |
+//  |    +-------+        +-------+   |    +-------+        +-------+        +-------+    |   +-------+    |
+//  +--->|  next |------->|  next |---+    |  next |------->|  next |------->|  next |    +-->|  next |----+
+//       +-------+        +-------+        +-------+        +-------+        +-------+        +-------+
+//  +----| prev  |<-------| prev  |<--+    | prev  |<-------| prev  |<-------| prev  |    +---| prev  |<---+
+//  |    +-------+        +-------+   |    +-------+        +-------+        +-------+    |   +-------+    |
+//  |                                 |       |                                  |        |                |
+//  |                                 +-------+----------------------------------+--------+                |
+//  +-----------------------------------------+----------------------------------+-------------------------+
+//                                            |                                  |
+//                                            |                                  |
+//                                            |             +-------+            |
+//                                            +--<-----<----|  head |            |
+//                                                          +-------+            |
+//                                                          | tail  |---->--->---+
+//                                                          +-------+
+
+// 把l2追接到l1上
+void splice_tow_list_chain(list_head_chain *l1, list_head_chain *l2) {
+    if (l1->head != l2->head && l1->tail != l2->tail) {
+        l1->tail->next = l2->head;
+        l2->head->prev = l1->tail;
+        l1->tail = l2->tail;
+    }
+}
+
+// 从task_list中尝试拉取N个结点,返回值为成功拉取的个数
+int try_take_a_N_size_chain_from_list(list_head_chain *l_chain, list_head *head, int N) {
+    int i = 0;
+    list_head *pos;
+    list_for_each(pos, head) {
+        if (i == 0) {
+            l_chain->head = pos;
+            l_chain->tail = pos;
+        } else if (i < N) {
+            l_chain->tail = pos;
+        } else {
+            break;
+        }
+        i++;
+    }
+    return i;
+}
+
+void append_a_list_chain_2_list_head(list_head_chain *l_chain, list_head *head) {
+    head->next->prev = l_chain->tail;
+    l_chain->tail->next = head->next;
+    head->next = l_chain->head;
+    l_chain->head->prev = head;
+}

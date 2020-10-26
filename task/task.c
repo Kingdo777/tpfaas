@@ -81,62 +81,71 @@ I *take_I_from_I_local_task_queue_safe(T *t) {
     return i;
 }
 
-void cut_n_T_from_F_global_task_list_unsafe(T *t, int count) {
-    //TODO 截取F_global_task_list
-
-//        F_global_I_queue *fGlobalIQueue = NULL;
-//        list_for_each_entry(fGlobalIQueue, &f->F_global_I_queue_head, F_global_I_queue_list) {
-//            if (fGlobalIQueue->i_queue->queue_list_size > 0 &&
-//                !list_empty(&fGlobalIQueue->i_queue->instance_list_head)) {
-//                take_an_entry_from_head(i, &fGlobalIQueue->i_queue->instance_list_head,
-//                                        F_global_wait_queue_list)
-//                list_del(&i->F_global_wait_queue_list);
-//                fGlobalIQueue->i_queue->queue_list_size--;
-//                f->wait_I_count--;
-//                break;
-//            }
-//        }
+int cut_n_T_from_F_global_task_list_unsafe(T *t, list_head_chain *l_chain, int count) {
+    int real_count = 0, tmp_count = 0;
+    F_global_I_queue *fGlobalIQueue = NULL;
+    F *f = t->work_for;
+    list_for_each_entry(fGlobalIQueue, &f->F_global_I_queue_head, F_global_I_queue_list) {
+        if (fGlobalIQueue->i_queue->queue_list_size > 0 &&
+            !list_empty(&fGlobalIQueue->i_queue->instance_list_head)) {
+            tmp_count = try_take_a_N_size_chain_from_list(l_chain, &fGlobalIQueue->i_queue->instance_list_head, count);
+            real_count += tmp_count;
+            count -= real_count;
+            fGlobalIQueue->i_queue->queue_list_size -= tmp_count;
+            f->wait_I_count -= tmp_count;
+            tmp_count = 0;
+            if (count == 0) {
+                break;
+            }
+        }
+    }
+    return real_count;
 }
 
-void cut_n_T_from_T_local_task_list_unsafe(T *t, int count) {
-    //TODO 截取T_local_task_list
+int cut_n_T_from_T_local_task_list_unsafe(T *t, list_head_chain *l_chain, int count) {
+    int real_count = 0;
+    real_count = try_take_a_N_size_chain_from_list(l_chain, &t->i_queue->i_queue->instance_list_head, count);
+    t->i_queue->i_queue->queue_list_size -= count;
+    return real_count;
 }
 
-void append_n_T_to_T_local_task_list_safe(T *t, int count) {
+void append_n_T_to_T_local_task_list_safe(T *t, list_head_chain *l_chain, int count) {
     F *f = t->work_for;
     pthread_mutex_lock(&t->T_local_I_queue_lock);
     t->i_queue->i_queue->queue_list_max_cap = f->concurrent_count;
-    //TODO,追加到T
-    t->i_queue->i_queue->queue_list_size = count;
+    append_a_list_chain_2_list_head(l_chain, &t->i_queue->i_queue->instance_list_head);
+    t->i_queue->i_queue->queue_list_size += count;
     pthread_mutex_unlock(&t->T_local_I_queue_lock);
 }
 
 int try_get_n_I_from_F_global_task_list_2_T_local_task_list_safe(T *t, int count) {
     F *f = t->work_for;
     pthread_mutex_lock(&f->F_global_I_queue_lock);
+    list_head_chain l_chain;
     int pull_count = count < f->wait_I_count ? count : f->wait_I_count;
     if (pull_count > 0) {
-        cut_n_T_from_F_global_task_list_unsafe(t, pull_count);
+        pull_count = cut_n_T_from_F_global_task_list_unsafe(t, &l_chain, pull_count);
         pthread_mutex_unlock(&f->F_global_I_queue_lock);
     } else {
         pthread_mutex_unlock(&f->F_global_I_queue_lock);
         return 0;
     }
-    append_n_T_to_T_local_task_list_safe(t, pull_count);
+    append_n_T_to_T_local_task_list_safe(t, &l_chain, pull_count);
     return pull_count;
 }
 
 int try_get_n_I_from_other_T_local_task_list_2_T_local_task_list_safe(T *t, T *other_t) {
     pthread_mutex_lock(&other_t->T_local_I_queue_lock);
     int pull_count = other_t->i_queue->i_queue->queue_list_size / 2;
+    list_head_chain l_chain;
     if (pull_count > 0) {
-        cut_n_T_from_T_local_task_list_unsafe(t, pull_count);
+        pull_count = cut_n_T_from_T_local_task_list_unsafe(t, &l_chain, pull_count);
         pthread_mutex_unlock(&other_t->T_local_I_queue_lock);
     } else {
         pthread_mutex_unlock(&other_t->T_local_I_queue_lock);
         return 0;
     }
-    append_n_T_to_T_local_task_list_safe(t, pull_count);
+    append_n_T_to_T_local_task_list_safe(t, &l_chain, pull_count);
     return pull_count;
 }
 
