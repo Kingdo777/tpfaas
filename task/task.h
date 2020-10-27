@@ -79,12 +79,12 @@ bool malloc_task_stack_when_create(T *t);
 
 T *get_T_for_I(I *i);
 
-void put_T_into_R_idle_task_list(T *t, R *r);
+void put_T_into_R_idle_task_list_safe(T *t, R *r);
 
-void remove_T_from_R_idle_task_list(T *t, R *r);
+void remove_T_from_R_idle_task_list_safe(T *t, R *r);
 
-void put_T_into_R_busy_task_list(T *t, R *r);
+void put_T_into_R_busy_task_list_safe(T *t, R *r);
 
-void remove_T_from_R_busy_task_list(T *t, R *r);
+void remove_T_from_R_busy_task_list_safe(T *t, R *r);
 
 #endif //TPFAAS_TASK_H

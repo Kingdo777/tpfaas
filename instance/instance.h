@@ -28,4 +28,7 @@ void release_instance_space(I *i);
 
 void make_request(F *f, void *agr, size_t arg_size);
 
+bool malloc_instance_stack_when_create(I *i, void *arg, size_t arg_size);
+
+
 #endif //TPFAAS_INSTANCE_H

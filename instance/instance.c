@@ -42,6 +42,9 @@ I *create_instance(F *f, void *agr, size_t arg_size) {
         printf("malloc T space fault\n");
         return NULL;
     }
+//    if (init_instance(i, f)) {
+//        return i;
+//    }
     if (init_instance(i, f) && malloc_instance_stack_when_create(i, agr, arg_size)) {
         return i;
     }
@@ -106,7 +109,7 @@ void wake_T_for_I(I *i) {
             t->direct_run = true;
         }
         t->work_for = i->f;
-        put_T_into_R_busy_task_list(t, i->f->r);
+        put_T_into_R_busy_task_list_safe(t, i->f->r);
         thread_wake_up_one(t);
     }
 }

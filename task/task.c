@@ -253,8 +253,8 @@ void get_instance(T *t) {
         t->deal_with = i;
         return;
     }
-    remove_T_from_R_busy_task_list(t, t->work_for->r);
-    put_T_into_R_idle_task_list(t, t->work_for->r);
+    remove_T_from_R_busy_task_list_safe(t, t->work_for->r);
+    put_T_into_R_idle_task_list_safe(t, t->work_for->r);
     thread_sleep(&t->futex_word);
     goto find;
 }
@@ -283,13 +283,13 @@ T *creat_T(I *i) {
     if (init_task(t, i) && bind_os_thread(t)) {
         //只要不为空就放到busy队列
         if (i != NULL) {
-            put_T_into_R_busy_task_list(t, i->f->r);
+            put_T_into_R_busy_task_list_safe(t, i->f->r);
         }
         return t;
     }
     //错误处理：从busy队列中移除，并释放栈空间
     if (i != NULL) {
-        remove_T_from_R_busy_task_list(t, i->f->r);
+        remove_T_from_R_busy_task_list_safe(t, i->f->r);
     }
     release_err_task(t);
     return NULL;
@@ -368,6 +368,7 @@ bool bind_os_thread_(T *t) {
          * SIGCHLD，子进程退出时，向父进程发送的signal，如果不发送这个信号，那么是没办法被wait()获取的，只能使用waitpid + __WALL/__WCLONE等参数
          *
         */
+//    malloc_instance_stack_when_create(t->deal_with, "Hello clone\n", sizeof("Hello clone\n"));
     t->tgid = clone((void *) task_done, t->stack.stack_top,
                     CLONE_VM |
                     CLONE_SETTLS |
@@ -378,7 +379,7 @@ bool bind_os_thread_(T *t) {
     return t->tgid == -1;
 }
 
-void put_T_into_R_idle_task_list(T *t, R *r) {
+void put_T_into_R_idle_task_list_safe(T *t, R *r) {
     pthread_mutex_lock(&r->task_idle_lock);
     t->work_for = NULL;
     t->deal_with = NULL;
@@ -387,7 +388,7 @@ void put_T_into_R_idle_task_list(T *t, R *r) {
     pthread_mutex_unlock(&r->task_idle_lock);
 }
 
-void remove_T_from_R_idle_task_list(T *t, R *r) {
+void remove_T_from_R_idle_task_list_safe(T *t, R *r) {
     pthread_mutex_lock(&r->task_idle_lock);
     if (r->task_idle_count > 0) {
         list_del(&t->task_idle_list);
@@ -396,14 +397,14 @@ void remove_T_from_R_idle_task_list(T *t, R *r) {
     pthread_mutex_unlock(&r->task_idle_lock);
 }
 
-void put_T_into_R_busy_task_list(T *t, R *r) {
+void put_T_into_R_busy_task_list_safe(T *t, R *r) {
     pthread_mutex_lock(&r->task_busy_lock);
     list_add(&t->task_busy_list, &r->task_busy_head);
     r->task_busy_count++;
     pthread_mutex_unlock(&r->task_busy_lock);
 }
 
-void remove_T_from_R_busy_task_list(T *t, R *r) {
+void remove_T_from_R_busy_task_list_safe(T *t, R *r) {
     pthread_mutex_lock(&r->task_busy_lock);
     if (r->task_busy_count > 0) {
         list_del(&t->task_busy_list);
@@ -413,7 +414,7 @@ void remove_T_from_R_busy_task_list(T *t, R *r) {
     //TODO 需要修改T的资源配置
 }
 
-T *get_T_from_R_idle_task_list(R *r) {
+T *get_T_from_R_idle_task_list_safe(R *r) {
     pthread_mutex_lock(&r->task_idle_lock);
     if (r->task_idle_count > 0) {
         T *t;
@@ -434,7 +435,7 @@ T *get_T_from_all_R_idle_task_list_except_R1(R *r1) {
     T *t = NULL;
     list_for_each_entry(r, &res_list_head, res_list) {
         if (r != r1) {
-            t = get_T_from_R_idle_task_list(r);
+            t = get_T_from_R_idle_task_list_safe(r);
             if (NULL != t)
                 return t;
         }
@@ -447,7 +448,7 @@ T *get_T_from_all_R_idle_task_list_except_R1(R *r1) {
 T *get_T_for_I(I *i) {
     T *t;
     R *r = i->f->r;
-    t = get_T_from_R_idle_task_list(r);
+    t = get_T_from_R_idle_task_list_safe(r);
     if (NULL == t) {
         t = get_T_from_all_R_idle_task_list_except_R1(r);
     }

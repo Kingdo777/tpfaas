@@ -54,13 +54,14 @@ gogo_switch_new_free_old_and_jmp:
 	.cfi_def_cfa_register 6
 	# 切换栈空间
 	movq    %rdi,%rsp
+	pushq   %rdx
 
 	# 删除原来的栈空间
     movq    %rsi,%rdi
     call	free@PLT
 
     #跳转
-    movq    %rdx,   %rax
+    popq    %rax
     movq    %rsp,   %rdi
     addq    $8,     %rdi
     jmp     %rax
