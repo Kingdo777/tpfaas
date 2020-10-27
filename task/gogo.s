@@ -12,14 +12,17 @@ gogo_jmp:
 	nop
     .cfi_def_cfa 7, 8
     # 跳转到用户线程
-    jmp     %rdi
+    movq    %rdi,   %rax
+    movq    %rsp,   %rdi
+    addq    $8,     %rdi
+    jmp     %rax
     .cfi_endproc
 
-#void gogo_switch(void *new_stack);
+#void gogo_switch_new_free_old(void *new_stack, void *old_stack);
 	.text
-	.globl	gogo_switch
-	.type	gogo_switch, @function
-gogo_switch:
+	.globl	gogo_switch_new_free_old
+	.type	gogo_switch_new_free_old, @function
+gogo_switch_new_free_old:
 .LFB9:
 	.cfi_startproc
 	.cfi_def_cfa_offset 16
@@ -31,7 +34,36 @@ gogo_switch:
 	movq    %rdi,%rsp
 	# 恢复原来的PC
 	pushq   %rax
+	# 删除原来的栈空间
+    movq    %rsi,%rdi
+    call	free@PLT
 	nop
     .cfi_def_cfa 7, 8
     ret
+    .cfi_endproc
+
+#void gogo_switch_new_free_old_and_jmp(void *new_stack, void *old_stack, void *new_pc);
+	.text
+	.globl	gogo_switch_new_free_old_and_jmp
+	.type	gogo_switch_new_free_old_and_jmp, @function
+gogo_switch_new_free_old_and_jmp:
+.LFB10:
+	.cfi_startproc
+	.cfi_def_cfa_offset 16
+	.cfi_offset 6, -16
+	.cfi_def_cfa_register 6
+	# 切换栈空间
+	movq    %rdi,%rsp
+
+	# 删除原来的栈空间
+    movq    %rsi,%rdi
+    call	free@PLT
+
+    #跳转
+    movq    %rdx,   %rax
+    movq    %rsp,   %rdi
+    addq    $8,     %rdi
+    jmp     %rax
+	nop
+    .cfi_def_cfa 7, 8
     .cfi_endproc

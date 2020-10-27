@@ -24,6 +24,7 @@ bool malloc_instance_stack_when_create(I *i, void *arg, size_t arg_size) {
         return false;
     }
     COPY_STACK_DATA(i->stack.stack_top, arg, arg_size)
+    PUSH_PTR(i->stack.stack_top, task_done)
     i->stack.stack_size = DEFAULT_STACK_SIZE;
     return true;
 }
@@ -99,7 +100,7 @@ void wake_T_for_I(I *i) {
     T *t;
     t = get_T_for_I(i);
     if (t != NULL) {
-        //the T isn't new create,need sleep it
+        //the T isn't new create,need week up it
         if (!i->f->concurrent_enable) {
             t->deal_with = i;
             t->direct_run = true;
@@ -117,7 +118,7 @@ void release_instance_space(I *i) {
     }
 }
 
-void receive_request(F *f, void *agr, size_t arg_size) {
+void make_request(F *f, void *agr, size_t arg_size) {
     bool need_wake_T;
     I *i = create_instance(f, agr, arg_size);
     if (NULL != i) {

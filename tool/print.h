@@ -7,6 +7,7 @@
 
 #include <stdio.h>
 #include <stdbool.h>
+#include "tool/tls.h"
 
 extern unsigned long printf_fs;
 extern unsigned long base;
@@ -45,6 +46,6 @@ static inline void print_num(long num, bool new_line) {
 #define RESTORE_PRINTF_FS() set_tls((void *) printf_fs);
 #define SAVE_FS() get_tls(&base);
 #define RESTORE_FS() set_tls((void *) base);
-#define PRINTF(...) SAVE_FS() RESTORE_PRINTF_FS() printf(__VA_ARGS__); RESTORE_FS()
+#define PRINTF(...) do{SAVE_FS() RESTORE_PRINTF_FS() printf(__VA_ARGS__); RESTORE_FS()}while(0);
 
 #endif //TPFAAS_PRINT_H

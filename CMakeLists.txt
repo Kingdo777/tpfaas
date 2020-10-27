@@ -13,7 +13,7 @@ add_executable(tpfaas
         resource/resource.h
         sync/sync.c sync/sync.h sync/lock.h
         tool/list_head.h tool/tls.c tool/tls.h tool/print.h tool/stack.h tool/queue.h tool/list_head.c
-        task/task.c task/task.h task/gogo.s task/gogo.c
+        task/task.c task/task.h task/gogo.c task/gogo.s
         resource/resource.c
         instance/instance.c instance/instance.h
-        doc/RFIT-model.h)
+        doc/RFIT-model.h test/test.h)

@@ -15,8 +15,8 @@ void task_done();
 
 #define MALLOC_STACK_SPACE(s_size) malloc(s_size)
 #define MALLOC_DEFAULT_STACK_SPACE() MALLOC_STACK_SPACE(DEFAULT_STACK_SIZE)
-#define MALLOC_STACK(s_top, s_space, s_size) s_space=malloc(s_size);\
-    s_top=s_space+s_size;
+#define MALLOC_STACK(s_top, s_space, s_size) do{s_space=malloc(s_size);\
+    s_top=s_space+s_size;}while(0);
 #define MALLOC_DEFAULT_STACK(s_top, s_space) MALLOC_STACK(s_top, s_space,DEFAULT_STACK_SIZE)
 #define MALLOC_STACK_WITH_TASK_DONE(s_top, s_space, s_size) MALLOC_STACK(s_top, s_space, s_size) \
        PUSH_PTR(s_top,task_done)
@@ -39,7 +39,7 @@ void task_done();
 #define COPY_STACK(s, d) do{ \
         d.stack_space=s.stack_space;  \
         d.stack_top=s.stack_top;      \
-        d.stack_size=s.stack_size;     \
+        d.stack_size=s.stack_size;    \
         }while(0);
 #define COPY_STACK_DATA(s_top, data_addr, data_size) \
     s_top-=data_size;                                \

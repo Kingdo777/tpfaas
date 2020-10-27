@@ -237,7 +237,7 @@ I *steal_instance_form_R_all_busy_T_local_queue(T *t) {
 void get_instance(T *t) {
     I *i;
     find:
-    if (t->deal_with != NULL && t->work_for != NULL && t->work_for->concurrent_enable && t->direct_run) {
+    if (t->deal_with != NULL && t->work_for != NULL && !t->work_for->concurrent_enable && t->direct_run) {
         t->direct_run = false;
         return;
     }
@@ -328,12 +328,15 @@ void release_err_task(T *t) {
 void release_task_stack_when_sleep(T *t) {
     void *old_stack_space = t->stack.stack_space;
     malloc_task_stack_when_create(t);
-    gogo_switch(t->stack.stack_top);
-    free(old_stack_space);
+    gogo_switch_new_free_old(t->stack.stack_top, old_stack_space);
 }
 
 bool malloc_task_stack_when_create(T *t) {
-    MALLOC_DEFAULT_STACK(t->stack.stack_top, t->stack.stack_space);
+//    MALLOC_DEFAULT_STACK(t->stack.stack_top, t->stack.stack_space)
+    do {
+        t->stack.stack_space = malloc(8 * 1024);
+        t->stack.stack_top = t->stack.stack_space + 8 * 1024;
+    } while (0);
     if (t->stack.stack_space == NULL) {
         printf("malloc stack space fault\n");
         return false;
@@ -371,7 +374,8 @@ bool bind_os_thread_(T *t) {
                     CLONE_CHILD_SETTID |
                     CLONE_PARENT_SETTID,
                     NULL, &task_pid_list__[task_num__++], t, &t->tgid);
-    return t->tgid != -1;
+
+    return t->tgid == -1;
 }
 
 void put_T_into_R_idle_task_list(T *t, R *r) {
