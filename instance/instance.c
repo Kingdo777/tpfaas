@@ -47,7 +47,6 @@ I *create_instance(F *f, void *agr, size_t arg_size) {
         return NULL;
     }
     if (init_instance(i, f) && malloc_instance_stack_when_create(i, agr, arg_size)) {
-        malloc(1);
         return i;
     }
     release_err_instance(i);

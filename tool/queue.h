@@ -44,16 +44,16 @@ typedef struct {
     int queue_list_max_cap;
     //表头，链接队列中的所有I
     list_head instance_list_head;
-} instance_queue;
+} Instance_queue;
 
-typedef struct {
-    instance_queue *i_queue;
+typedef struct T_local_I_list{
+    Instance_queue *i_queue;
 } T_local_I_list;
 
 typedef struct {
     //是否为等待队列
     bool is_wait_queue;
-    instance_queue *i_queue;
+    Instance_queue *i_queue;
     //表头在F，链接所有的queue_head
     list_head F_global_I_queue_list;
 

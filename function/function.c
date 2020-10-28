@@ -34,7 +34,7 @@ void create_global_I_queue(F *f, bool is_wait) {
     F_global_I_queue *queue = malloc(sizeof(F_global_I_queue));
     queue->is_wait_queue = is_wait;
     INIT_LIST_HEAD(&queue->F_global_I_queue_list);
-    queue->i_queue = malloc(sizeof(instance_queue));
+    queue->i_queue = malloc(sizeof(Instance_queue));
     queue->i_queue->queue_list_max_cap = is_wait ? f->concurrent_count : INT_MAX;
     queue->i_queue->queue_list_size = 0;
     INIT_LIST_HEAD(&queue->i_queue->instance_list_head);
