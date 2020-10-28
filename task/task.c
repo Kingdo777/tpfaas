@@ -332,11 +332,7 @@ void release_task_stack_when_sleep(T *t) {
 }
 
 bool malloc_task_stack_when_create(T *t) {
-//    MALLOC_DEFAULT_STACK(t->stack.stack_top, t->stack.stack_space)
-    do {
-        t->stack.stack_space = malloc(8 * 1024);
-        t->stack.stack_top = t->stack.stack_space + 8 * 1024;
-    } while (0);
+    MALLOC_DEFAULT_STACK(t->stack.stack_top, t->stack.stack_space)
     if (t->stack.stack_space == NULL) {
         printf("malloc stack space fault\n");
         return false;
