@@ -1,7 +1,6 @@
 //
 // Created by kingdo on 2020/10/23.
 //
-
 #include <function/function.h>
 #include <stdio.h>
 #include <tool/queue.h>
@@ -9,7 +8,10 @@
 #include <tool/print.h>
 #include <task/task.h>
 #include <sync/sync.h>
+#include <malloc.h>
 #include "instance.h"
+
+
 
 bool init_instance(I *i, F *f) {
     i->f = f;
@@ -37,7 +39,9 @@ void release_err_instance(I *i) {
 }
 
 I *create_instance(F *f, void *agr, size_t arg_size) {
+    size_t t = sizeof(I);
     I *i = malloc(sizeof(I));
+    size_t t1 = malloc_usable_size(i);
     if (i == NULL) {
         printf("malloc T space fault\n");
         return NULL;

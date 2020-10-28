@@ -21,14 +21,9 @@ extern int task_num__;
 
 void gogo_(stack_struct *stack) {
     get_tls(&stack);
-    void *old_stack_space = stack[0].stack_space;
+    void *old_stack_space = stack[1].stack_space;
 
-//    stack_struct stack_new;
-//    MALLOC_DEFAULT_STACK(stack_new.stack_top, stack_new.stack_space);
-//    COPY_STACK_DATA(stack_new.stack_top, "Hello new\n", sizeof("Hello new\n"))
-//    stack_new.stack_size = DEFAULT_STACK_SIZE;
-
-    stack_struct stack_new = stack[1];
+    stack_struct stack_new = stack[0];
     PRINTF("%s\n", stack_new.stack_top)
 
     gogo_switch_new_free_old_and_jmp(stack_new.stack_top, old_stack_space, NULL);
@@ -50,10 +45,10 @@ int main() {
 //    stack[0].stack_size = DEFAULT_STACK_SIZE;
 //
 //    MALLOC_DEFAULT_STACK(stack[1].stack_top, stack[1].stack_space);
-//    COPY_STACK_DATA(stack[1].stack_top, "Hello world\n", 1)
+//    COPY_STACK_DATA(stack[1].stack_top, "HelloA\n", sizeof("HelloA\n"))
 //    stack[1].stack_size = DEFAULT_STACK_SIZE;
 //
-//    pid_t pid = clone((void *) gogo_, stack[0].stack_top, CLONE_VM | CLONE_SETTLS,
+//    pid_t pid = clone((void *) gogo_, stack[1].stack_top, CLONE_VM | CLONE_SETTLS,
 //                      NULL, NULL, stack, NULL);
 //    waitpid(pid, NULL, __WALL);
 //    return 0;
@@ -64,7 +59,7 @@ int main() {
 //    func_register(taskF, "taskB", res, 10);
     F *f_A = get_func("taskA");
 //    F *f_B = get_func("taskB");
-    make_request(f_A, "HelloA\n", sizeof("HelloA\n"));
+    make_request(f_A, "abcdefg", sizeof("abcdefg"));
 //    make_request(f_B, "Hello B\n", sizeof("Hello A\n"));
 
     waitpid(task_pid_list__[task_num__ - 1], NULL, __WALL);

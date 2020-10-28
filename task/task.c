@@ -307,8 +307,10 @@ bool init_task(T *t, I *i) {
         return false;
     INIT_T_LIST_HEAD(t)
 
+    size_t size=sizeof(T_local_I_list);
     t->i_queue = malloc(sizeof(T_local_I_list));
-    t->i_queue->i_queue = malloc(sizeof(instance_queue));
+    size_t size1=sizeof(instance_queue);
+    t->i_queue->i_queue = malloc(size1);
     t->i_queue->i_queue->queue_list_size = 0;
     t->i_queue->i_queue->queue_list_max_cap = (((i == NULL || !i->f->concurrent_enable) ? 0 : i->f->concurrent_count));
     INIT_LIST_HEAD(&t->i_queue->i_queue->instance_list_head);
