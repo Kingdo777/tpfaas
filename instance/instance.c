@@ -11,7 +11,7 @@
 #include <malloc.h>
 #include "instance.h"
 
-
+extern pthread_mutex_t print_mutex;
 
 bool init_instance(I *i, F *f) {
     i->f = f;
@@ -117,7 +117,8 @@ void wake_T_for_I(I *i) {
 //这里仅仅释放了I的空间,不包括I的栈空间
 void release_instance_space(I *i) {
     if (i != NULL) {
-        free(i);
+//        free(i);
+        FREE(i);
     }
 }
 

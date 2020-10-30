@@ -11,7 +11,7 @@ void task_done();
 
 
 #define PTR_SIZE (int)(sizeof(void*))
-#define DEFAULT_STACK_SIZE 512
+#define DEFAULT_STACK_SIZE 8*1024
 
 #define MALLOC_STACK_SPACE(s_size) malloc(s_size)
 #define MALLOC_DEFAULT_STACK_SPACE() MALLOC_STACK_SPACE(DEFAULT_STACK_SIZE)

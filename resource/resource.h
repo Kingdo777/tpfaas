@@ -55,12 +55,12 @@ typedef struct {
     //用于链接每个list
     list_head res_list;
     //链接在此R上的所有F
-    list_head function_head;
+    list_head resource_func_head;
 } R;
 
 #define INIT_R_LIST_HEAD(r) do{  \
     INIT_LIST_HEAD(&r->res_list);\
-    INIT_LIST_HEAD(&r->function_head);\
+    INIT_LIST_HEAD(&r->resource_func_head);\
     INIT_LIST_HEAD(&r->task_idle_head);\
     INIT_LIST_HEAD(&r->task_busy_head);\
 }while(0);

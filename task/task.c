@@ -21,6 +21,8 @@ LIST_HEAD(task_list_head);
 __pid_t task_pid_list__[TASK_MAX_COUNT];
 int task_num__ = 0;
 
+extern pthread_mutex_t print_mutex;
+
 /**
  * get_instance 流程：
  *  若concurrent_enable==true:
@@ -193,7 +195,7 @@ I *get_instance_form_R_all_F_global_queue(T *t) {
     I *i = NULL;
     F *f;
     R *r = t->work_for->r;
-    list_for_each_entry(f, &r->function_head, func_list) {
+    list_for_each_entry(f, &r->resource_func_head, func_list_list) {
         if (f->concurrent_enable) {
             t->work_for = f;
             if (try_get_n_I_from_F_global_task_list_2_T_local_task_list_safe(t, t->work_for->concurrent_count / 2) >
@@ -263,7 +265,7 @@ void task_done() {
     TLS(t);
     if (t->deal_with != NULL && !t->direct_run) {
         //清空执行Instance所保留的栈数据
-        release_task_stack_when_sleep(t);
+        release_I_stack(t);
         //删除instance
         release_instance_space(t->deal_with);
     }
@@ -280,11 +282,13 @@ T *creat_T(I *i) {
         printf("malloc T space fault\n");
         return NULL;
     }
-    if (init_task(t, i) && bind_os_thread(t)) {
+    if (init_task(t, i)) {
         //只要不为空就放到busy队列
         if (i != NULL) {
             put_T_into_R_busy_task_list_safe(t, i->f->r);
         }
+        //保证在执行子线程之前，数据都是正确写入的，因此在此函数后面父进程不应该再执行任何有意义的操作
+        bind_os_thread(t);
         return t;
     }
     //错误处理：从busy队列中移除，并释放栈空间
@@ -325,11 +329,9 @@ void release_err_task(T *t) {
         free(t);
 }
 
-void release_task_stack_when_sleep(T *t) {
-    free(t->deal_with->stack.stack_space);
-//    void *old_stack_space = t->stack.stack_space;
-//    malloc_task_stack_when_create(t);
-//    gogo_switch_new_free_old(t->stack.stack_top, old_stack_space);
+void release_I_stack(T *t) {
+    FREE(t->deal_with->stack.stack_space)
+//    free(t->deal_with->stack.stack_space);
 }
 
 bool malloc_task_stack_when_create(T *t) {
@@ -338,7 +340,6 @@ bool malloc_task_stack_when_create(T *t) {
         printf("malloc stack space fault\n");
         return false;
     }
-    PUSH_PTR(t->stack.stack_top, task_done)
     t->stack.stack_size = DEFAULT_STACK_SIZE;
     return true;
 }
@@ -413,19 +414,19 @@ void remove_T_from_R_busy_task_list_safe(T *t, R *r) {
 }
 
 T *get_T_from_R_idle_task_list_safe(R *r) {
+    T *t = NULL;
     pthread_mutex_lock(&r->task_idle_lock);
     if (r->task_idle_count > 0) {
-        T *t;
         list_for_each_entry(t, &r->task_idle_head, task_idle_list) {
             list_del(&t->task_idle_list);
             r->task_idle_count--;
+            pthread_mutex_unlock(&r->task_idle_lock);
             return t;
         }
         never_reach("cant get idle task\n");
-    } else {
-        return NULL;
     }
     pthread_mutex_unlock(&r->task_idle_lock);
+    return t;
 }
 
 T *get_T_from_all_R_idle_task_list_except_R1(R *r1) {

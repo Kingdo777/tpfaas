@@ -18,9 +18,11 @@
 
 extern list_head task_list_head;
 extern list_head func_list_head;
+extern pthread_mutex_t print_mutex;
 
 void *taskF(void *arg) {
-    PRINTF("%s\n", (char *) arg)
+//    PRINTF("%s\n", (char *) arg)
+//    puts(arg);
     return NULL;
 }
 
@@ -29,7 +31,7 @@ static void function_test() {
     func_register(taskF, "taskA", res, 1);
     func_register(taskF, "taskB", res, 10);
     F *f;
-    list_for_each_entry_prev(f, &func_list_head, func_list) {
+    list_for_each_entry_prev(f, &func_list_head, func_list_list) {
         const char *func_name = f->name;
         printf("%s RUN:\n", func_name);
         FUN(func_name, "hello world\n")

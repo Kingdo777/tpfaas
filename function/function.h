@@ -42,13 +42,13 @@ typedef struct {
 //    list_head func_task_head;
 
     //func的全局链表，之前用的是数组，好像在RFIT模型中也没什么卵用
-    list_head func_list;
+    list_head func_list_list;
     //链接到R上的func链表
     list_head resource_func_list;
 } F;
 
 #define INIT_F_LIST_HEAD(f) do{  \
-    INIT_LIST_HEAD(&f->func_list);\
+    INIT_LIST_HEAD(&f->func_list_list);\
     INIT_LIST_HEAD(&f->resource_func_list); \
     INIT_LIST_HEAD(&f->F_global_I_queue_head); \
 }while(0);

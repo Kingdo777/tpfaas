@@ -19,7 +19,7 @@ LIST_HEAD(func_list_head)
 
 F *get_func_from_name(const char *function_name) {
     F *f;
-    list_for_each_entry(f, &func_list_head, func_list) {
+    list_for_each_entry(f, &func_list_head, func_list_list) {
         if (!strcmp(f->name, function_name))
             return f;
     }
@@ -77,8 +77,8 @@ bool func_register(void *(*entry_addr)(void *), const char *function_name, resou
         return false;
     F *f = (F *) malloc(sizeof(F));
     init_func(f, entry_addr, function_name, res, concurrent_count);
-    list_add(&f->r->function_head, &f->func_list);
-    list_add(&f->func_list, &func_list_head);
+    list_add(&f->r->resource_func_head, &f->resource_func_list);
+    list_add(&f->func_list_list, &func_list_head);
     return true;
 }
 

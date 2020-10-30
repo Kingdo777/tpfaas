@@ -42,10 +42,29 @@ static inline void print_num(long num, bool new_line) {
 }
 
 
-#define GET_PRINTF_FS() get_tls(&printf_fs);
+#define GET_PRINTF_FS() \
+    do{ \
+        get_tls(&printf_fs);pthread_mutex_init(&print_mutex,NULL); \
+    }while(0);
 #define RESTORE_PRINTF_FS() set_tls((void *) printf_fs);
 #define SAVE_FS() get_tls(&base);
 #define RESTORE_FS() set_tls((void *) base);
-#define PRINTF(...) do{SAVE_FS() RESTORE_PRINTF_FS() printf(__VA_ARGS__); RESTORE_FS()}while(0);
-
+#define PRINTF(...) \
+    do{             \
+        pthread_mutex_lock(&print_mutex);\
+        SAVE_FS()   \
+        RESTORE_PRINTF_FS() \
+        printf(__VA_ARGS__);\
+        RESTORE_FS()\
+        pthread_mutex_unlock(&print_mutex);\
+    }while(0);
+#define SCANF(...) \
+    do{             \
+        pthread_mutex_lock(&print_mutex);\
+        SAVE_FS()   \
+        RESTORE_PRINTF_FS() \
+        scanf(__VA_ARGS__);\
+        RESTORE_FS()\
+        pthread_mutex_unlock(&print_mutex);\
+    }while(0);
 #endif //TPFAAS_PRINT_H

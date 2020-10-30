@@ -72,7 +72,7 @@ bool bind_os_thread_(T *t);
 
 void release_err_task(T *t);
 
-void release_task_stack_when_sleep(T *t);
+void release_I_stack(T *t);
 
 bool malloc_task_stack_when_create(T *t);
 
