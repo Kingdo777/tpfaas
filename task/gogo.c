@@ -10,9 +10,6 @@
 #include "instance/instance.h"
 
 void gogo(T *t) {
-
-    malloc_instance_stack_when_create(t->deal_with, "Hello clone\n", sizeof("Hello clone\n"));
-
     void *old_stack_space = t->stack.stack_space;
     COPY_STACK(t->deal_with->stack, t->stack)
     //切换堆栈以后,所有的,堆栈中的数据将全部无法使用,包括了局部变量等,因此,在gogo_switch之前定义的变量都无法使用,但是t是通过寄存器传递的,因此
