@@ -26,7 +26,6 @@ bool malloc_instance_stack_when_create(I *i, void *arg, size_t arg_size) {
         return false;
     }
     COPY_STACK_DATA(i->stack.stack_top, arg, arg_size)
-    PUSH_PTR(i->stack.stack_top, task_done)
     i->stack.stack_size = DEFAULT_STACK_SIZE;
     return true;
 }

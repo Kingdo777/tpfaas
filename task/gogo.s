@@ -68,3 +68,23 @@ gogo_switch_new_free_old_and_jmp:
 	nop
     .cfi_def_cfa 7, 8
     .cfi_endproc
+
+#void go_back_stack_and_jmp(void *stack_top, void *arg_stack, void *new_pc);
+	.text
+	.globl	go_back_stack_and_jmp
+	.type	go_back_stack_and_jmp, @function
+go_back_stack_and_jmp:
+.LFB11:
+	.cfi_startproc
+	.cfi_def_cfa_offset 16
+	.cfi_offset 6, -16
+	.cfi_def_cfa_register 6
+	# 切换栈空间
+	movq    %rdi,%rsp
+	# 导入参数栈
+    movq    %rsi,%rdi
+    # 跳转
+    jmp     %rdx
+	nop
+    .cfi_def_cfa 7, 8
+    .cfi_endproc

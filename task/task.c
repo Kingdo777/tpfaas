@@ -326,9 +326,10 @@ void release_err_task(T *t) {
 }
 
 void release_task_stack_when_sleep(T *t) {
-    void *old_stack_space = t->stack.stack_space;
-    malloc_task_stack_when_create(t);
-    gogo_switch_new_free_old(t->stack.stack_top, old_stack_space);
+    free(t->deal_with->stack.stack_space);
+//    void *old_stack_space = t->stack.stack_space;
+//    malloc_task_stack_when_create(t);
+//    gogo_switch_new_free_old(t->stack.stack_top, old_stack_space);
 }
 
 bool malloc_task_stack_when_create(T *t) {
@@ -337,6 +338,7 @@ bool malloc_task_stack_when_create(T *t) {
         printf("malloc stack space fault\n");
         return false;
     }
+    PUSH_PTR(t->stack.stack_top, task_done)
     t->stack.stack_size = DEFAULT_STACK_SIZE;
     return true;
 }

@@ -14,7 +14,6 @@
 
 extern void gogo_switch_new_free_old(void *new_stack, void *old_stack);
 
-extern void gogo_switch_new_free_old_and_jmp(void *new_stack, void *old_stack, void *new_pc);
 
 extern list_head res_list_head;
 
