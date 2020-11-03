@@ -7,9 +7,7 @@
 #include <stdlib.h>
 #include <pthread.h>
 #include <limits.h>
-#include <instance/instance.h>
 #include "function.h"
-#include "tool/stack.h"
 #include "tool/queue.h"
 #include "tool/list_head.h"
 #include "resource/resource.h"

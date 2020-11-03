@@ -7,64 +7,13 @@
 
 #include <stdio.h>
 #include <stdbool.h>
-#include "tool/tls.h"
-
-extern unsigned long printf_fs;
-extern unsigned long base;
-
-#define PRINT_LONG(n) print_num(n,true)
-#define PRINT_INT(n) print_num((long)n,true)
-#define PRINT_LONG_INLINE(n) print_num(n,false)
-#define PRINT_INT_INLINE(n) print_num((long)n,false)
 
 static inline void never_reach(const char *msg) {
-    puts(msg);
+    printf("%s\n", msg);
+    printf("123\n");
     int m = 0;
     while (1 / m)
         m++;
 }
 
-static inline void print_num(long num, bool new_line) {
-    char s[50];
-    int i = 49;
-    s[i--] = '\0';
-    if (new_line)
-        s[i--] = '\n';
-    char sign = num < 0 ? (num = 0 - num, '-') : 0;
-    if (!num)
-        s[i] = '0';
-    else
-        for (long j = num % 10; num != 0; num /= 10, j = num % 10)
-            s[i--] = '0' + j;
-    if (sign)
-        s[i--] = sign;
-    puts(&s[++i]);
-}
-
-
-#define GET_PRINTF_FS() \
-    do{ \
-        get_tls(&printf_fs);pthread_mutex_init(&print_mutex,NULL); \
-    }while(0);
-#define RESTORE_PRINTF_FS() set_tls((void *) printf_fs);
-#define SAVE_FS() get_tls(&base);
-#define RESTORE_FS() set_tls((void *) base);
-#define PRINTF(...) \
-    do{             \
-        pthread_mutex_lock(&print_mutex);\
-        SAVE_FS()   \
-        RESTORE_PRINTF_FS() \
-        printf(__VA_ARGS__);\
-        RESTORE_FS()\
-        pthread_mutex_unlock(&print_mutex);\
-    }while(0);
-#define SCANF(...) \
-    do{             \
-        pthread_mutex_lock(&print_mutex);\
-        SAVE_FS()   \
-        RESTORE_PRINTF_FS() \
-        scanf(__VA_ARGS__);\
-        RESTORE_FS()\
-        pthread_mutex_unlock(&print_mutex);\
-    }while(0);
 #endif //TPFAAS_PRINT_H

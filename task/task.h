@@ -7,7 +7,6 @@
 
 #include "tool/list_head.h"
 #include "function/function.h"
-#include "tool/stack.h"
 #include <stdlib.h>
 #include <tool/queue.h>
 #include "instance/instance.h"
@@ -23,11 +22,10 @@ extern list_head res_list_head;
 
 typedef struct T {
     //pid
-    __pid_t tgid;
-    //futex word
-    int futex_word;
-    //stack
-    stack_struct stack;
+    pthread_t tgid;
+
+    pthread_cond_t t_cont;
+    pthread_mutex_t t_mutex;
 
     //当前正在为那个F工作
     F *work_for;
@@ -42,8 +40,6 @@ typedef struct T {
     pthread_mutex_t T_local_I_queue_lock;
     T_local_I_list *i_queue;
 
-    //一个全局的task链表，目前来说在RFIT模型中没有什么用处
-    list_head task_list;
     //链接在R上的空闲链表
     list_head task_idle_list;
     //链接在R上的工作链表
@@ -52,7 +48,6 @@ typedef struct T {
     list_head task_func_list;
 } T;
 #define INIT_T_LIST_HEAD(t) do{  \
-    INIT_LIST_HEAD(&t->task_list);\
     INIT_LIST_HEAD(&t->task_idle_list);\
     INIT_LIST_HEAD(&t->task_busy_list);\
     INIT_LIST_HEAD(&t->task_func_list);\
@@ -66,15 +61,8 @@ bool init_task(T *t, I *i);
 
 bool bind_os_thread(T *t);
 
-void gogo(T *t);
 
 bool bind_os_thread_(T *t);
-
-void release_err_task(T *t);
-
-void release_I_stack(T *t);
-
-bool malloc_task_stack_when_create(T *t);
 
 T *get_T_for_I(I *i);
 

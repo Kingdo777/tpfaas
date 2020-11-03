@@ -9,17 +9,9 @@
 #include "function/function.h"
 #include "task/task.h"
 
-//随便一个整数就可以，这里就是我的幸运数字了
-#define DEFAULT_FUTEX_WORD 7
-#define WAKE_ONE 1
-#define WAKE_ALL INT_MAX
-
-#define errExit(msg)    do { perror(msg); exit(EXIT_FAILURE);} while (0)
-
-void thread_sleep(int *futex_word);
+void thread_sleep(T *t);
 
 void thread_wake_up_one(T *t);
 
-void thread_wake_up_all(T *t);
 
 #endif //TPFAAS_SYNC_H

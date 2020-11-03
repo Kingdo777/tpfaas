@@ -5,50 +5,29 @@
 #include <stdio.h>
 #include <tool/queue.h>
 #include <pthread.h>
-#include <tool/print.h>
 #include <task/task.h>
 #include <sync/sync.h>
 #include <malloc.h>
+#include <tool/print.h>
 #include "instance.h"
 
-extern pthread_mutex_t print_mutex;
 
-bool init_instance(I *i, F *f) {
+bool init_instance(I *i, F *f, void *arg) {
     i->f = f;
+    i->arg = arg;
     INIT_I_LIST_HEAD(i)
     return true;
 }
 
-bool malloc_instance_stack_when_create(I *i, void *arg, size_t arg_size) {
-    MALLOC_DEFAULT_STACK(i->stack.stack_top, i->stack.stack_space);
-    if (i->stack.stack_space == NULL) {
-        printf("malloc stack space fault\n");
-        return false;
-    }
-    COPY_STACK_DATA(i->stack.stack_top, arg, arg_size)
-    i->stack.stack_size = DEFAULT_STACK_SIZE;
-    return true;
-}
-
-void release_err_instance(I *i) {
-    if (i->stack.stack_space != NULL)
-        free(i->stack.stack_space);
-    if (i != NULL)
-        free(i);
-}
-
-I *create_instance(F *f, void *agr, size_t arg_size) {
-    size_t t = sizeof(I);
+I *create_instance(F *f, void *arg) {
     I *i = malloc(sizeof(I));
-    size_t t1 = malloc_usable_size(i);
     if (i == NULL) {
         printf("malloc T space fault\n");
         return NULL;
     }
-    if (init_instance(i, f) && malloc_instance_stack_when_create(i, agr, arg_size)) {
+    if (init_instance(i, f, arg)) {
         return i;
     }
-    release_err_instance(i);
     return NULL;
 }
 
@@ -117,14 +96,13 @@ void wake_T_for_I(I *i) {
 //这里仅仅释放了I的空间,不包括I的栈空间
 void release_instance_space(I *i) {
     if (i != NULL) {
-//        free(i);
-        FREE(i);
+        free(i);
     }
 }
 
-void make_request(F *f, void *agr, size_t arg_size) {
+void make_request(F *f, void *agr) {
     bool need_wake_T;
-    I *i = create_instance(f, agr, arg_size);
+    I *i = create_instance(f, agr);
     if (NULL != i) {
         need_wake_T = add_2_F(i);
         if (need_wake_T) {

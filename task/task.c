@@ -4,24 +4,16 @@
 #define _GNU_SOURCE
 
 #include <sched.h>
-#include "tool/tls.h"
 #include "sync/sync.h"
 #include <stdio.h>
-#include <unistd.h>
 #include <errno.h>
 #include <pthread.h>
-#include "tool/print.h"
-#include "tool/stack.h"
+#include <tool/print.h>
 #include "tool/list_head.h"
 #include "tool/queue.h"
 #include "task.h"
 
 LIST_HEAD(task_list_head);
-
-__pid_t task_pid_list__[TASK_MAX_COUNT];
-int task_num__ = 0;
-
-extern pthread_mutex_t print_mutex;
 
 /**
  * get_instance 流程：
@@ -243,36 +235,37 @@ void get_instance(T *t) {
         t->direct_run = false;
         return;
     }
-    i = get_I_from_I_local_task_queue__and__supply_I_from_F_if_need(t);
-    if (NULL == i) {
-        i = get_instance_form_R_all_F_global_queue(t);
-    }
-    if (NULL == i) {
-        i = steal_instance_form_R_all_busy_T_local_queue(t);
-    }
-    if (NULL != i) {
-        t->work_for = i->f;
-        t->deal_with = i;
-        return;
-    }
+//    i = get_I_from_I_local_task_queue__and__supply_I_from_F_if_need(t);
+//    if (NULL == i) {
+//        i = get_instance_form_R_all_F_global_queue(t);
+//    }
+//    if (NULL == i) {
+//        i = steal_instance_form_R_all_busy_T_local_queue(t);
+//    }
+//    if (NULL != i) {
+//        t->work_for = i->f;
+//        t->deal_with = i;
+//        return;
+//    }
     remove_T_from_R_busy_task_list_safe(t, t->work_for->r);
     put_T_into_R_idle_task_list_safe(t, t->work_for->r);
-    thread_sleep(&t->futex_word);
+    thread_sleep(t);
     goto find;
 }
 
-void task_done() {
-    TLS(t);
+_Noreturn void *task_done(void *arg) {
+    T *t = (T *) arg;
+    handle_request:
     if (t->deal_with != NULL && !t->direct_run) {
         //清空执行Instance所保留的栈数据
-        release_I_stack(t);
         //删除instance
         release_instance_space(t->deal_with);
     }
     //get_function如果找不到function，那么将一直睡眠，一旦返回说明已经找到
     get_instance(t);
     //找到的instance被写到了task的deal_with中
-    gogo(t);
+    t->work_for->entry_addr(t->deal_with->arg);
+    goto handle_request;
 }
 
 //i可以为NULL
@@ -295,20 +288,18 @@ T *creat_T(I *i) {
     if (i != NULL) {
         remove_T_from_R_busy_task_list_safe(t, i->f->r);
     }
-    release_err_task(t);
     return NULL;
 }
 
 
 bool init_task(T *t, I *i) {
-    t->futex_word = DEFAULT_FUTEX_WORD;
+    pthread_mutex_init(&t->t_mutex, NULL);
+    pthread_cond_init(&t->t_cont, NULL);
     //如果开启了并发，那么将通过get函数寻找I，并拉去一定数目的I
     //如果未开启，那么直接制定deal_with，可以立马执行
     t->work_for = (i == NULL ? NULL : i->f);
     t->deal_with = (((i == NULL || i->f->concurrent_enable) ? NULL : i));
     t->direct_run = (((i == NULL || i->f->concurrent_enable) ? false : true));
-    if (!malloc_task_stack_when_create(t))
-        return false;
     INIT_T_LIST_HEAD(t)
 
     t->i_queue = malloc(sizeof(T_local_I_list));
@@ -318,36 +309,14 @@ bool init_task(T *t, I *i) {
     INIT_LIST_HEAD(&t->i_queue->i_queue->instance_list_head);
 
     pthread_mutex_init(&t->T_local_I_queue_lock, NULL);
-    list_add(&t->task_list, &task_list_head);
     return true;
 }
 
-void release_err_task(T *t) {
-    if (t->stack.stack_space != NULL)
-        free(t->stack.stack_space);
-    if (t != NULL)
-        free(t);
-}
-
-void release_I_stack(T *t) {
-    FREE(t->deal_with->stack.stack_space)
-//    free(t->deal_with->stack.stack_space);
-}
-
-bool malloc_task_stack_when_create(T *t) {
-    MALLOC_DEFAULT_STACK(t->stack.stack_top, t->stack.stack_space)
-    if (t->stack.stack_space == NULL) {
-        printf("malloc stack space fault\n");
-        return false;
-    }
-    t->stack.stack_size = DEFAULT_STACK_SIZE;
-    return true;
-}
 
 bool bind_os_thread(T *t) {
     int try_c = TRY_COUNT;
     try:
-    if (bind_os_thread_(t)) {
+    if (!bind_os_thread_(t)) {
         printf("clone wrong,try %d\n", TRY_COUNT - try_c + 1);
         if (try_c-- > 0)
             goto try;
@@ -358,24 +327,8 @@ bool bind_os_thread(T *t) {
 }
 
 bool bind_os_thread_(T *t) {
-    /**
-         * 这里仅仅设置了CLONE_VM参数而没有设置CLONE_THREAD flag是一个重大的决定，这意味着，我们clone的线程和posix定义的线程不同
-         * 可以认为我们定义的是一个共享内存地址空间的进程，这样clone的每个进程依然是一个线程组，但是exec、exit仍然还是一个危险的操作
-         *
-         * CLONE_SETTLS 使用的也是arch_prctl系统调用，利用FS实现线程存储
-         *
-         * SIGCHLD，子进程退出时，向父进程发送的signal，如果不发送这个信号，那么是没办法被wait()获取的，只能使用waitpid + __WALL/__WCLONE等参数
-         *
-        */
-//    malloc_instance_stack_when_create(t->deal_with, "Hello clone\n", sizeof("Hello clone\n"));
-    t->tgid = clone((void *) task_done, t->stack.stack_top,
-                    CLONE_VM |
-                    CLONE_SETTLS |
-                    CLONE_CHILD_SETTID |
-                    CLONE_PARENT_SETTID,
-                    NULL, &task_pid_list__[task_num__++], t, &t->tgid);
-
-    return t->tgid == -1;
+    pthread_create(&t->tgid, NULL, task_done, t);
+    return t->tgid != 0;
 }
 
 void put_T_into_R_idle_task_list_safe(T *t, R *r) {
@@ -384,16 +337,19 @@ void put_T_into_R_idle_task_list_safe(T *t, R *r) {
     t->deal_with = NULL;
     list_add(&t->task_idle_list, &r->task_idle_head);
     r->task_idle_count++;
+//    printf("***%d\n", r->task_idle_count);
     pthread_mutex_unlock(&r->task_idle_lock);
 }
 
 void remove_T_from_R_idle_task_list_safe(T *t, R *r) {
-    pthread_mutex_lock(&r->task_idle_lock);
     if (r->task_idle_count > 0) {
-        list_del(&t->task_idle_list);
-        r->task_idle_count--;
+        pthread_mutex_lock(&r->task_idle_lock);
+        if (r->task_idle_count > 0) {
+            list_del(&t->task_idle_list);
+            r->task_idle_count--;
+        }
+        pthread_mutex_unlock(&r->task_idle_lock);
     }
-    pthread_mutex_unlock(&r->task_idle_lock);
 }
 
 void put_T_into_R_busy_task_list_safe(T *t, R *r) {
@@ -404,28 +360,31 @@ void put_T_into_R_busy_task_list_safe(T *t, R *r) {
 }
 
 void remove_T_from_R_busy_task_list_safe(T *t, R *r) {
-    pthread_mutex_lock(&r->task_busy_lock);
     if (r->task_busy_count > 0) {
-        list_del(&t->task_busy_list);
-        r->task_busy_count--;
+        pthread_mutex_lock(&r->task_busy_lock);
+        if (r->task_busy_count > 0) {
+            list_del(&t->task_busy_list);
+            r->task_busy_count--;
+        }
+        pthread_mutex_unlock(&r->task_busy_lock);
     }
-    pthread_mutex_unlock(&r->task_busy_lock);
     //TODO 需要修改T的资源配置
 }
 
 T *get_T_from_R_idle_task_list_safe(R *r) {
     T *t = NULL;
-    pthread_mutex_lock(&r->task_idle_lock);
     if (r->task_idle_count > 0) {
-        list_for_each_entry(t, &r->task_idle_head, task_idle_list) {
+        pthread_mutex_lock(&r->task_idle_lock);
+        if (r->task_idle_count > 0) {
+            take_an_entry_from_head(t, &r->task_idle_head, task_idle_list)
+            if (NULL == t)
+                never_reach("can't get idle T\n");
+//            list_del(r->task_idle_head.next);
             list_del(&t->task_idle_list);
             r->task_idle_count--;
-            pthread_mutex_unlock(&r->task_idle_lock);
-            return t;
         }
-        never_reach("cant get idle task\n");
+        pthread_mutex_unlock(&r->task_idle_lock);
     }
-    pthread_mutex_unlock(&r->task_idle_lock);
     return t;
 }
 
@@ -434,6 +393,7 @@ T *get_T_from_all_R_idle_task_list_except_R1(R *r1) {
     T *t = NULL;
     list_for_each_entry(r, &res_list_head, res_list) {
         if (r != r1) {
+            printf("###############\n");
             t = get_T_from_R_idle_task_list_safe(r);
             if (NULL != t)
                 return t;
@@ -445,7 +405,7 @@ T *get_T_from_all_R_idle_task_list_except_R1(R *r1) {
 //这里返回的T一定是纯净的，不在任何链表中的(idle\busy\work_for_F)
 //如果返回的是NULL说明是新创建的。直接为I服务不需要唤醒
 T *get_T_for_I(I *i) {
-    T *t;
+    T *t = NULL;
     R *r = i->f->r;
     t = get_T_from_R_idle_task_list_safe(r);
     if (NULL == t) {
