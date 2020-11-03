@@ -32,6 +32,14 @@
  *      2. 一个T被唤醒后找到了可执行任务,脱离idle队列追加到追加到busy队列以及F的T列表
  * */
 
+/***
+ *
+ * 
+ *
+ *
+ * */
+
+
 //初始化所有的锁
 static inline void init_all_lock() {
 

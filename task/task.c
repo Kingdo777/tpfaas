@@ -211,6 +211,7 @@ I *steal_instance_form_R_all_busy_T_local_queue(T *t) {
     F *f;
     R *r = t->work_for->r;
     T *other_t;
+    pthread_mutex_lock(&r->task_busy_lock);
     list_for_each_entry(other_t, &r->task_busy_head, task_busy_list) {
         f = other_t->work_for;
         if (f->concurrent_enable) {
@@ -221,10 +222,12 @@ I *steal_instance_form_R_all_busy_T_local_queue(T *t) {
                 if (i == NULL) {
                     never_reach("can't get instance - q3\n");
                 }
+                pthread_mutex_unlock(&r->task_busy_lock);
                 return i;
             }
         }
     }
+    pthread_mutex_unlock(&r->task_busy_lock);
     return i;
 }
 
@@ -235,18 +238,18 @@ void get_instance(T *t) {
         t->direct_run = false;
         return;
     }
-//    i = get_I_from_I_local_task_queue__and__supply_I_from_F_if_need(t);
-//    if (NULL == i) {
-//        i = get_instance_form_R_all_F_global_queue(t);
-//    }
-//    if (NULL == i) {
-//        i = steal_instance_form_R_all_busy_T_local_queue(t);
-//    }
-//    if (NULL != i) {
-//        t->work_for = i->f;
-//        t->deal_with = i;
-//        return;
-//    }
+    i = get_I_from_I_local_task_queue__and__supply_I_from_F_if_need(t);
+    if (NULL == i) {
+        i = get_instance_form_R_all_F_global_queue(t);
+    }
+    if (NULL == i) {
+        i = steal_instance_form_R_all_busy_T_local_queue(t);
+    }
+    if (NULL != i) {
+        t->work_for = i->f;
+        t->deal_with = i;
+        return;
+    }
     remove_T_from_R_busy_task_list_safe(t, t->work_for->r);
     put_T_into_R_idle_task_list_safe(t, t->work_for->r);
     thread_sleep(t);
@@ -337,7 +340,6 @@ void put_T_into_R_idle_task_list_safe(T *t, R *r) {
     t->deal_with = NULL;
     list_add(&t->task_idle_list, &r->task_idle_head);
     r->task_idle_count++;
-//    printf("***%d\n", r->task_idle_count);
     pthread_mutex_unlock(&r->task_idle_lock);
 }
 
@@ -379,7 +381,6 @@ T *get_T_from_R_idle_task_list_safe(R *r) {
             take_an_entry_from_head(t, &r->task_idle_head, task_idle_list)
             if (NULL == t)
                 never_reach("can't get idle T\n");
-//            list_del(r->task_idle_head.next);
             list_del(&t->task_idle_list);
             r->task_idle_count--;
         }
@@ -393,7 +394,6 @@ T *get_T_from_all_R_idle_task_list_except_R1(R *r1) {
     T *t = NULL;
     list_for_each_entry(r, &res_list_head, res_list) {
         if (r != r1) {
-            printf("###############\n");
             t = get_T_from_R_idle_task_list_safe(r);
             if (NULL != t)
                 return t;

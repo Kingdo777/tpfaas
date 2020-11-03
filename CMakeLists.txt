@@ -16,6 +16,5 @@ add_executable(tpfaas
         task/task.c task/task.h
         resource/resource.c
         instance/instance.c instance/instance.h
-        doc/RFIT-model.h test/test.h
-        test/test.c
-        tpool/tpool.c tpool/tpool.h tpool/test.c)
+        doc/RFIT-model.h
+        test/test.h test/test.c)
