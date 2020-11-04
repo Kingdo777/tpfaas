@@ -3,8 +3,6 @@
 //
 
 #include "list_head.h"
-
-
 #include <stddef.h>
 
 ///******************** 添加节点 ****************************///
@@ -161,6 +159,9 @@ int try_take_a_N_size_chain_from_list(list_head_chain *l_chain, list_head *head,
             break;
         }
         i++;
+    }
+    if (i > 0) {
+        list_del__(l_chain->head->prev,l_chain->tail->next);
     }
     return i;
 }

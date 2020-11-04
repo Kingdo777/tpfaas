@@ -12,7 +12,7 @@ add_executable(tpfaas
         function/function.c function/function.h
         resource/resource.h
         sync/sync.c sync/sync.h sync/lock.h
-        tool/list_head.h tool/print.h tool/queue.h tool/list_head.c
+        tool/list_head.h tool/print.h tool/list_head.c
         task/task.c task/task.h
         resource/resource.c
         instance/instance.c instance/instance.h

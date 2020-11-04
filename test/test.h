@@ -17,7 +17,7 @@ extern list_head task_list_head;
 extern list_head func_list_head;
 
 void *taskF(void *arg) {
-    printf("%d\n", (int) (arg));
+    printf("run %d\n", (int) (arg));
     return NULL;
 }
 

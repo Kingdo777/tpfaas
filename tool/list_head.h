@@ -233,4 +233,8 @@ int try_take_a_N_size_chain_from_list(list_head_chain *l_chain, list_head *head,
 
 void append_a_list_chain_2_list_head(list_head_chain *l_chain, list_head *head);
 
+//#define  change_l_chain_head(l_chain, new_member, type, member) \
+//    l_chain.head=(container_of(&l_chain.head,type, member)).new_member;\
+//    l_chain.tail=(container_of(&l_chain.head,type, member)).new_member;
+
 #endif //TPFAAS_LIST_HEAD_H

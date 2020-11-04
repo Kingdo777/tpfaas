@@ -27,18 +27,15 @@ typedef struct {
     int concurrent_count;
 
     //访问下面任何一个变量都需要加相同的锁
-    pthread_mutex_t F_global_I_queue_lock;
-    //又是一个及其重要的参数，表示了当前正在处理F的剩余容量
-    int all_global_I_queue_rest_cap;
-    //当前队列中等待I的个数
+    pthread_mutex_t F_global_wait_i_lock;
+    //又是一个及其重要的参数，表示了F的剩余可处理容量=(T*C-Running)
+    int F_global_wait_i_list_rest_cap;
+    //当前全局队列中等待的I个数
     int wait_I_count;
+    //正在work_for此F的T的个数
+    int work_T_count;
     //链表头 指向了instance队列
-    list_head F_global_I_queue_head;
-
-    //好像没什么乱用啊，还增复杂度
-//    pthread_mutex_t func_task_lock;
-//    //链表头 指向了为此F服务的所有的T
-//    list_head func_task_head;
+    list_head F_global_wait_i_head;
 
     //func的全局链表，之前用的是数组，好像在RFIT模型中也没什么卵用
     list_head func_list_list;
@@ -49,7 +46,7 @@ typedef struct {
 #define INIT_F_LIST_HEAD(f) do{  \
     INIT_LIST_HEAD(&f->func_list_list);\
     INIT_LIST_HEAD(&f->resource_func_list); \
-    INIT_LIST_HEAD(&f->F_global_I_queue_head); \
+    INIT_LIST_HEAD(&f->F_global_wait_i_head); \
 }while(0);
 
 bool func_register(void *(*entry_addr)(void *), const char *function_name, resource res, int concurrent_count);

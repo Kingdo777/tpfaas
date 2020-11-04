@@ -10,10 +10,9 @@
 #include <pthread.h>
 #include <tool/print.h>
 #include "tool/list_head.h"
-#include "tool/queue.h"
 #include "task.h"
 
-LIST_HEAD(task_list_head);
+LIST_HEAD(task_list_head)
 
 /**
  * get_instance 流程：
@@ -58,70 +57,57 @@ LIST_HEAD(task_list_head);
  * */
 
 I *take_I_from_I_local_task_queue_unsafe(T *t) {
-    I *i;
-    if (t->i_queue->i_queue->queue_list_size > 0) {
-        take_an_entry_from_tail(i, &t->i_queue->i_queue->instance_list_head, I_local_wait_queue_list)
-        list_del(&i->I_local_wait_queue_list);
-        t->i_queue->i_queue->queue_list_size--;
+    I *i = NULL;
+    if (t->T_local_wait_i_size > 0) {
+        take_an_entry_from_tail(i, &t->T_local_wait_i_head, wait_i_list)
+        list_del(&i->wait_i_list);
+        t->T_local_wait_i_size--;
     }
     return i;
 }
 
 I *take_I_from_I_local_task_queue_safe(T *t) {
-    I *i;
-    pthread_mutex_lock(&t->T_local_I_queue_lock);
+    I *i = NULL;
+    pthread_mutex_lock(&t->T_local_wait_i_lock);
     i = take_I_from_I_local_task_queue_unsafe(t);
-    pthread_mutex_unlock(&t->T_local_I_queue_lock);
+    pthread_mutex_unlock(&t->T_local_wait_i_lock);
     return i;
 }
 
 int cut_n_T_from_F_global_task_list_unsafe(T *t, list_head_chain *l_chain, int count) {
-    int real_count = 0, tmp_count = 0;
-    F_global_I_queue *fGlobalIQueue = NULL;
+    int real_count;
     F *f = t->work_for;
-    list_for_each_entry(fGlobalIQueue, &f->F_global_I_queue_head, F_global_I_queue_list) {
-        if (fGlobalIQueue->i_queue->queue_list_size > 0 &&
-            !list_empty(&fGlobalIQueue->i_queue->instance_list_head)) {
-            tmp_count = try_take_a_N_size_chain_from_list(l_chain, &fGlobalIQueue->i_queue->instance_list_head, count);
-            real_count += tmp_count;
-            count -= real_count;
-            fGlobalIQueue->i_queue->queue_list_size -= tmp_count;
-            f->wait_I_count -= tmp_count;
-            tmp_count = 0;
-            if (count == 0) {
-                break;
-            }
-        }
-    }
+    real_count = try_take_a_N_size_chain_from_list(l_chain, &f->F_global_wait_i_head, count);
+    f->wait_I_count -= real_count;
     return real_count;
 }
 
 int cut_n_T_from_T_local_task_list_unsafe(T *t, list_head_chain *l_chain, int count) {
-    int real_count = 0;
-    real_count = try_take_a_N_size_chain_from_list(l_chain, &t->i_queue->i_queue->instance_list_head, count);
-    t->i_queue->i_queue->queue_list_size -= count;
+    int real_count;
+    real_count = try_take_a_N_size_chain_from_list(l_chain, &t->T_local_wait_i_head, count);
+    t->T_local_wait_i_size -= count;
     return real_count;
 }
 
 void append_n_T_to_T_local_task_list_safe(T *t, list_head_chain *l_chain, int count) {
-    F *f = t->work_for;
-    pthread_mutex_lock(&t->T_local_I_queue_lock);
-    t->i_queue->i_queue->queue_list_max_cap = f->concurrent_count;
-    append_a_list_chain_2_list_head(l_chain, &t->i_queue->i_queue->instance_list_head);
-    t->i_queue->i_queue->queue_list_size += count;
-    pthread_mutex_unlock(&t->T_local_I_queue_lock);
+    if (count > 0) {
+        pthread_mutex_lock(&t->T_local_wait_i_lock);
+        append_a_list_chain_2_list_head(l_chain, &t->T_local_wait_i_head);
+        t->T_local_wait_i_size += count;
+        pthread_mutex_unlock(&t->T_local_wait_i_lock);
+    }
 }
 
 int try_get_n_I_from_F_global_task_list_2_T_local_task_list_safe(T *t, int count) {
     F *f = t->work_for;
-    pthread_mutex_lock(&f->F_global_I_queue_lock);
+    pthread_mutex_lock(&f->F_global_wait_i_lock);
     list_head_chain l_chain;
     int pull_count = count < f->wait_I_count ? count : f->wait_I_count;
     if (pull_count > 0) {
         pull_count = cut_n_T_from_F_global_task_list_unsafe(t, &l_chain, pull_count);
-        pthread_mutex_unlock(&f->F_global_I_queue_lock);
+        pthread_mutex_unlock(&f->F_global_wait_i_lock);
     } else {
-        pthread_mutex_unlock(&f->F_global_I_queue_lock);
+        pthread_mutex_unlock(&f->F_global_wait_i_lock);
         return 0;
     }
     append_n_T_to_T_local_task_list_safe(t, &l_chain, pull_count);
@@ -129,18 +115,36 @@ int try_get_n_I_from_F_global_task_list_2_T_local_task_list_safe(T *t, int count
 }
 
 int try_get_n_I_from_other_T_local_task_list_2_T_local_task_list_safe(T *t, T *other_t) {
-    pthread_mutex_lock(&other_t->T_local_I_queue_lock);
-    int pull_count = other_t->i_queue->i_queue->queue_list_size / 2;
+    pthread_mutex_lock(&other_t->T_local_wait_i_lock);
+    int pull_count = other_t->T_local_wait_i_size / 2;
     list_head_chain l_chain;
     if (pull_count > 0) {
-        pull_count = cut_n_T_from_T_local_task_list_unsafe(t, &l_chain, pull_count);
-        pthread_mutex_unlock(&other_t->T_local_I_queue_lock);
+        pull_count = cut_n_T_from_T_local_task_list_unsafe(other_t, &l_chain, pull_count);
+        pthread_mutex_unlock(&other_t->T_local_wait_i_lock);
     } else {
-        pthread_mutex_unlock(&other_t->T_local_I_queue_lock);
+        pthread_mutex_unlock(&other_t->T_local_wait_i_lock);
         return 0;
     }
     append_n_T_to_T_local_task_list_safe(t, &l_chain, pull_count);
     return pull_count;
+}
+
+void T_attach_to_F_safe(F *f) {
+    if (f->concurrent_enable) {
+        pthread_mutex_lock(&f->F_global_wait_i_lock);
+        f->work_T_count++;
+        f->F_global_wait_i_list_rest_cap += f->concurrent_count;
+        pthread_mutex_unlock(&f->F_global_wait_i_lock);
+    }
+}
+
+void T_leave_from_F_safe(F *f) {
+    if (f->concurrent_enable) {
+        pthread_mutex_lock(&f->F_global_wait_i_lock);
+        f->work_T_count--;
+        f->F_global_wait_i_list_rest_cap -= f->concurrent_count;
+        pthread_mutex_unlock(&f->F_global_wait_i_lock);
+    }
 }
 
 /**
@@ -151,12 +155,12 @@ I *get_I_from_I_local_task_queue__and__supply_I_from_F_if_need(T *t) {
         return NULL;
     }
     I *i = NULL;
-    pthread_mutex_lock(&t->T_local_I_queue_lock);
+    pthread_mutex_lock(&t->T_local_wait_i_lock);
     //// 1. (1)
     i = take_I_from_I_local_task_queue_unsafe(t);
     //// 1. (2)
-    bool need_supply_I_from_F = (t->i_queue->i_queue->queue_list_size <= t->i_queue->i_queue->queue_list_max_cap);
-    pthread_mutex_unlock(&t->T_local_I_queue_lock);
+    bool need_supply_I_from_F = (t->T_local_wait_i_size <= t->work_for->concurrent_count / 2);
+    pthread_mutex_unlock(&t->T_local_wait_i_lock);
     //// 1. (2) 是：
     if (need_supply_I_from_F) {
         //// 1. (2) 是  1）
@@ -177,6 +181,9 @@ I *get_I_from_I_local_task_queue__and__supply_I_from_F_if_need(T *t) {
     //// 1. (3)
     i = take_I_from_I_local_task_queue_safe(t);
     //// 1. (4)
+    if (NULL == i) {
+        T_leave_from_F_safe(t->work_for);
+    }
     return i;
 }
 
@@ -187,16 +194,16 @@ I *get_instance_form_R_all_F_global_queue(T *t) {
     I *i = NULL;
     F *f;
     R *r = t->work_for->r;
-    list_for_each_entry(f, &r->resource_func_head, func_list_list) {
+    list_for_each_entry(f, &r->resource_func_head, resource_func_list) {
         if (f->concurrent_enable) {
             t->work_for = f;
             if (try_get_n_I_from_F_global_task_list_2_T_local_task_list_safe(t, t->work_for->concurrent_count / 2) >
                 0) {
                 i = take_I_from_I_local_task_queue_safe(t);
-                if (i == NULL) {
-                    never_reach("can't get instance - q2\n");
+                if (i != NULL) {
+                    T_attach_to_F_safe(f);
+                    return i;
                 }
-                return i;
             }
         }
     }
@@ -208,22 +215,24 @@ I *get_instance_form_R_all_F_global_queue(T *t) {
  * */
 I *steal_instance_form_R_all_busy_T_local_queue(T *t) {
     I *i = NULL;
-    F *f;
+    F *f = NULL;
     R *r = t->work_for->r;
     T *other_t;
     pthread_mutex_lock(&r->task_busy_lock);
-    list_for_each_entry(other_t, &r->task_busy_head, task_busy_list) {
-        f = other_t->work_for;
-        if (f->concurrent_enable) {
-            t->work_for = f;
-            if (try_get_n_I_from_other_T_local_task_list_2_T_local_task_list_safe(t, other_t) >
-                0) {
-                i = take_I_from_I_local_task_queue_safe(t);
-                if (i == NULL) {
-                    never_reach("can't get instance - q3\n");
+    if(r->task_busy_count>0){
+        list_for_each_entry(other_t, &r->task_busy_head, task_busy_list) {
+            f = other_t->work_for;
+            if (f->concurrent_enable) {
+                t->work_for = f;
+                if (try_get_n_I_from_other_T_local_task_list_2_T_local_task_list_safe(t, other_t) >
+                    0) {
+                    i = take_I_from_I_local_task_queue_safe(t);
+                    if (i != NULL) {
+                        T_attach_to_F_safe(f);
+                        pthread_mutex_unlock(&r->task_busy_lock);
+                        return i;
+                    }
                 }
-                pthread_mutex_unlock(&r->task_busy_lock);
-                return i;
             }
         }
     }
@@ -239,9 +248,9 @@ void get_instance(T *t) {
         return;
     }
     i = get_I_from_I_local_task_queue__and__supply_I_from_F_if_need(t);
-    if (NULL == i) {
-        i = get_instance_form_R_all_F_global_queue(t);
-    }
+//    if (NULL == i) {
+//        i = get_instance_form_R_all_F_global_queue(t);
+//    }
     if (NULL == i) {
         i = steal_instance_form_R_all_busy_T_local_queue(t);
     }
@@ -260,7 +269,11 @@ _Noreturn void *task_done(void *arg) {
     T *t = (T *) arg;
     handle_request:
     if (t->deal_with != NULL && !t->direct_run) {
-        //清空执行Instance所保留的栈数据
+        if (t->work_for->concurrent_enable) {
+            pthread_mutex_lock(&t->work_for->F_global_wait_i_lock);
+            t->work_for->F_global_wait_i_list_rest_cap++;
+            pthread_mutex_unlock(&t->work_for->F_global_wait_i_lock);
+        }
         //删除instance
         release_instance_space(t->deal_with);
     }
@@ -272,16 +285,16 @@ _Noreturn void *task_done(void *arg) {
 }
 
 //i可以为NULL
-T *creat_T(I *i) {
+T *creat_T(I *i, F *f) {
     T *t = malloc(sizeof(T));
     if (t == NULL) {
         printf("malloc T space fault\n");
         return NULL;
     }
-    if (init_task(t, i)) {
+    if (init_task(t, i, f)) {
         //只要不为空就放到busy队列
         if (i != NULL) {
-            put_T_into_R_busy_task_list_safe(t, i->f->r);
+            put_T_into_R_busy_task_list_safe(t, f->r);
         }
         //保证在执行子线程之前，数据都是正确写入的，因此在此函数后面父进程不应该再执行任何有意义的操作
         bind_os_thread(t);
@@ -289,29 +302,24 @@ T *creat_T(I *i) {
     }
     //错误处理：从busy队列中移除，并释放栈空间
     if (i != NULL) {
-        remove_T_from_R_busy_task_list_safe(t, i->f->r);
+        remove_T_from_R_busy_task_list_safe(t, f->r);
+        free(t);
     }
     return NULL;
 }
 
 
-bool init_task(T *t, I *i) {
+bool init_task(T *t, I *i, F *f) {
     pthread_mutex_init(&t->t_mutex, NULL);
     pthread_cond_init(&t->t_cont, NULL);
     //如果开启了并发，那么将通过get函数寻找I，并拉去一定数目的I
     //如果未开启，那么直接制定deal_with，可以立马执行
-    t->work_for = (i == NULL ? NULL : i->f);
-    t->deal_with = (((i == NULL || i->f->concurrent_enable) ? NULL : i));
-    t->direct_run = (((i == NULL || i->f->concurrent_enable) ? false : true));
+    t->work_for = f;
+    t->deal_with = (((i == NULL || f->concurrent_enable) ? NULL : i));
+    t->direct_run = (((i == NULL || f->concurrent_enable) ? false : true));
     INIT_T_LIST_HEAD(t)
-
-    t->i_queue = malloc(sizeof(T_local_I_list));
-    t->i_queue->i_queue = malloc(sizeof(Instance_queue));
-    t->i_queue->i_queue->queue_list_size = 0;
-    t->i_queue->i_queue->queue_list_max_cap = (((i == NULL || !i->f->concurrent_enable) ? 0 : i->f->concurrent_count));
-    INIT_LIST_HEAD(&t->i_queue->i_queue->instance_list_head);
-
-    pthread_mutex_init(&t->T_local_I_queue_lock, NULL);
+    t->T_local_wait_i_size = 0;
+    pthread_mutex_init(&t->T_local_wait_i_lock, NULL);
     return true;
 }
 
@@ -404,15 +412,19 @@ T *get_T_from_all_R_idle_task_list_except_R1(R *r1) {
 
 //这里返回的T一定是纯净的，不在任何链表中的(idle\busy\work_for_F)
 //如果返回的是NULL说明是新创建的。直接为I服务不需要唤醒
-T *get_T_for_I(I *i) {
+T *get_T_for_I(I *i, F *f) {
     T *t = NULL;
-    R *r = i->f->r;
+    R *r = f->r;
     t = get_T_from_R_idle_task_list_safe(r);
     if (NULL == t) {
         t = get_T_from_all_R_idle_task_list_except_R1(r);
     }
     if (NULL == t) {
-        creat_T(i);
+        if (f->concurrent_enable) {
+            creat_T(NULL, f);
+        } else {
+            creat_T(i, f);
+        }
         //返回NULL是因为T已经在很好的运行，不需要唤醒
         return NULL;
     }

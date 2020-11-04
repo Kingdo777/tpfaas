@@ -8,7 +8,6 @@
 #include "tool/list_head.h"
 #include "function/function.h"
 #include <stdlib.h>
-#include <tool/queue.h>
 #include "instance/instance.h"
 
 extern void gogo_switch_new_free_old(void *new_stack, void *old_stack);
@@ -37,34 +36,33 @@ typedef struct T {
     bool direct_run;
 
     //本地队列的长度
-    pthread_mutex_t T_local_I_queue_lock;
-    T_local_I_list *i_queue;
+    pthread_mutex_t T_local_wait_i_lock;
+    list_head T_local_wait_i_head;
+    int T_local_wait_i_size;
 
     //链接在R上的空闲链表
     list_head task_idle_list;
     //链接在R上的工作链表
     list_head task_busy_list;
-    //链接在F上的同时为该F工作的task
-    list_head task_func_list;
 } T;
 #define INIT_T_LIST_HEAD(t) do{  \
+    INIT_LIST_HEAD(&t->T_local_wait_i_head);\
     INIT_LIST_HEAD(&t->task_idle_list);\
     INIT_LIST_HEAD(&t->task_busy_list);\
-    INIT_LIST_HEAD(&t->task_func_list);\
 }while(0);
 
 //int task_birth(void *arg);
 
-T *creat_T(I *i);
+T *creat_T(I *i, F *f);
 
-bool init_task(T *t, I *i);
+bool init_task(T *t, I *i, F *f);
 
 bool bind_os_thread(T *t);
 
 
 bool bind_os_thread_(T *t);
 
-T *get_T_for_I(I *i);
+T *get_T_for_I(I *i, F *f);
 
 void put_T_into_R_idle_task_list_safe(T *t, R *r);
 
