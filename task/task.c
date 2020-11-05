@@ -247,18 +247,18 @@ void get_instance(T *t) {
         t->direct_run = false;
         return;
     }
-//    i = get_I_from_I_local_task_queue__and__supply_I_from_F_if_need(t);
-//    if (NULL == i) {
-//        i = get_instance_form_R_all_F_global_queue(t);
-//    }
-//    if (NULL == i) {
-//        i = steal_instance_form_R_all_busy_T_local_queue(t);
-//    }
-//    if (NULL != i) {
-//        t->work_for = i->f;
-//        t->deal_with = i;
-//        return;
-//    }
+    i = get_I_from_I_local_task_queue__and__supply_I_from_F_if_need(t);
+    if (NULL == i) {
+        i = get_instance_form_R_all_F_global_queue(t);
+    }
+    if (NULL == i) {
+        i = steal_instance_form_R_all_busy_T_local_queue(t);
+    }
+    if (NULL != i) {
+        t->work_for = i->f;
+        t->deal_with = i;
+        return;
+    }
     remove_T_from_R_busy_task_list_safe(t, t->work_for->r);
     put_T_into_R_idle_task_list_safe(t, t->work_for->r);
     thread_sleep(t);
@@ -316,6 +316,8 @@ bool init_task(T *t, I *i, F *f) {
     pthread_cond_init(&t->t_cont, NULL);
     //如果开启了并发，那么将通过get函数寻找I，并拉去一定数目的I
     //如果未开启，那么直接制定deal_with，可以立马执行
+    t->futex_word = DEFAULT_FUTEX_WORD;
+    sem_init(&t->sem_word, 0, 0);
     t->work_for = f;
     t->deal_with = (((i == NULL || f->concurrent_enable) ? NULL : i));
     t->direct_run = (((i == NULL || f->concurrent_enable) ? false : true));

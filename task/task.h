@@ -8,6 +8,7 @@
 #include "tool/list_head.h"
 #include "function/function.h"
 #include <stdlib.h>
+#include <semaphore.h>
 #include "instance/instance.h"
 
 extern void gogo_switch_new_free_old(void *new_stack, void *old_stack);
@@ -25,6 +26,9 @@ typedef struct T {
 
     pthread_cond_t t_cont;
     pthread_mutex_t t_mutex;
+
+    int futex_word;
+    sem_t sem_word;
 
     //当前正在为那个F工作
     F *work_for;

@@ -9,6 +9,9 @@
 #include "function/function.h"
 #include "task/task.h"
 
+#define DEFAULT_FUTEX_WORD 7
+#define errExit(msg)    do { perror(msg); exit(EXIT_FAILURE);} while (0)
+
 void thread_sleep(T *t);
 
 void thread_wake_up_one(T *t);
