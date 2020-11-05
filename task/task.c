@@ -219,7 +219,7 @@ I *steal_instance_form_R_all_busy_T_local_queue(T *t) {
     R *r = t->work_for->r;
     T *other_t;
     pthread_mutex_lock(&r->task_busy_lock);
-    if(r->task_busy_count>0){
+    if (r->task_busy_count > 0) {
         list_for_each_entry(other_t, &r->task_busy_head, task_busy_list) {
             f = other_t->work_for;
             if (f->concurrent_enable) {
@@ -241,24 +241,24 @@ I *steal_instance_form_R_all_busy_T_local_queue(T *t) {
 }
 
 void get_instance(T *t) {
-    I *i;
+    I *i = NULL;
     find:
     if (t->deal_with != NULL && t->work_for != NULL && !t->work_for->concurrent_enable && t->direct_run) {
         t->direct_run = false;
         return;
     }
-    i = get_I_from_I_local_task_queue__and__supply_I_from_F_if_need(t);
+//    i = get_I_from_I_local_task_queue__and__supply_I_from_F_if_need(t);
 //    if (NULL == i) {
 //        i = get_instance_form_R_all_F_global_queue(t);
 //    }
-    if (NULL == i) {
-        i = steal_instance_form_R_all_busy_T_local_queue(t);
-    }
-    if (NULL != i) {
-        t->work_for = i->f;
-        t->deal_with = i;
-        return;
-    }
+//    if (NULL == i) {
+//        i = steal_instance_form_R_all_busy_T_local_queue(t);
+//    }
+//    if (NULL != i) {
+//        t->work_for = i->f;
+//        t->deal_with = i;
+//        return;
+//    }
     remove_T_from_R_busy_task_list_safe(t, t->work_for->r);
     put_T_into_R_idle_task_list_safe(t, t->work_for->r);
     thread_sleep(t);
@@ -297,14 +297,16 @@ T *creat_T(I *i, F *f) {
             put_T_into_R_busy_task_list_safe(t, f->r);
         }
         //保证在执行子线程之前，数据都是正确写入的，因此在此函数后面父进程不应该再执行任何有意义的操作
-        bind_os_thread(t);
-        return t;
+        if (bind_os_thread(t)) {
+            return t;
+        }
     }
-    //错误处理：从busy队列中移除，并释放栈空间
+    //到这里说明存在创建的错误
+    //错误处理：从busy队列中移除，并栈空间
     if (i != NULL) {
         remove_T_from_R_busy_task_list_safe(t, f->r);
-        free(t);
     }
+    free(t);
     return NULL;
 }
 
@@ -338,8 +340,28 @@ bool bind_os_thread(T *t) {
 }
 
 bool bind_os_thread_(T *t) {
-    pthread_create(&t->tgid, NULL, task_done, t);
-    return t->tgid != 0;
+    int ret;
+    ret = pthread_create(&t->tgid, NULL, task_done, t);
+    if (ret != 0) {
+        switch (ret) {
+            case EAGAIN:
+                fprintf(stderr,
+                        "pthread_create wrong:A system-imposed limit on the number of threads was encountered or "
+                        "Insufficient resources to create another thread." "\n");
+                break;
+            case EINVAL:
+                fprintf(stderr, "pthread_create wrong:Invalid settings in attr." "\n");
+                break;
+            case EPERM:
+                fprintf(stderr,
+                        "pthread_create wrong:No permission to set the scheduling policy and parameters specified in attr." "\n");
+                break;
+            default:
+                fprintf(stderr, "pthread_create wrong:unknown wrong." "\n");
+                break;
+        }
+    }
+    return ret == 0;
 }
 
 void put_T_into_R_idle_task_list_safe(T *t, R *r) {
