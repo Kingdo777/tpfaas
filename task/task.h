@@ -20,6 +20,13 @@ extern list_head res_list_head;
 
 #define TASK_MAX_COUNT 10000
 
+//T的三种存在状态
+enum T_status {
+    Idle,
+    Busy,
+    None,
+};
+
 typedef struct T {
     //pid
     pthread_t tgid;
@@ -44,15 +51,16 @@ typedef struct T {
     list_head T_local_wait_i_head;
     int T_local_wait_i_size;
 
+    enum T_status status;
     //链接在R上的空闲链表
     list_head task_idle_list;
     //链接在R上的工作链表
     list_head task_busy_list;
 } T;
 #define INIT_T_LIST_HEAD(t) do{  \
-    INIT_LIST_HEAD(&t->T_local_wait_i_head);\
-    INIT_LIST_HEAD(&t->task_idle_list);\
-    INIT_LIST_HEAD(&t->task_busy_list);\
+    INIT_LIST_HEAD(&(t)->T_local_wait_i_head);\
+    INIT_LIST_HEAD(&(t)->task_idle_list);\
+    INIT_LIST_HEAD(&(t)->task_busy_list);\
 }while(0);
 
 //int task_birth(void *arg);

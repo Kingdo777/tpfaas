@@ -1,8 +1,6 @@
 //
 // Created by kingdo on 10/19/20.
 //
-#define _GNU_SOURCE
-
 #include <zconf.h>
 #include <syscall.h>
 #include <linux/futex.h>

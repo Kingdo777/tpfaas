@@ -1,7 +1,6 @@
 //
 // Created by kingdo on 10/17/20.
 //
-#define _GNU_SOURCE
 
 #include <stdio.h>
 #include <unistd.h>
@@ -13,8 +12,8 @@
 int main() {
     INIT_LOCK()
     resource res = DEFAULT_RESOURCE;
-    func_register(taskF, "taskA", res, 1);
-    int count = 50000;
+    func_register(taskF, "taskA", res, 100);
+    int count = 500000;
     F *f_A = get_func("taskA");
     for (int i = 1; i <= count; ++i) {
         make_request(f_A, (void *) i);

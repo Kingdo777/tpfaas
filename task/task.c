@@ -218,11 +218,12 @@ I *steal_instance_form_R_all_busy_T_local_queue(T *t) {
     F *f = NULL;
     R *r = t->work_for->r;
     T *other_t;
+    ////这里进行了锁的嵌套,是比较耗时的操作
     pthread_mutex_lock(&r->task_busy_lock);
     if (r->task_busy_count > 0) {
         list_for_each_entry(other_t, &r->task_busy_head, task_busy_list) {
             f = other_t->work_for;
-            if (f->concurrent_enable) {
+            if (f->concurrent_enable && other_t->T_local_wait_i_size > f->concurrent_count / 2) {
                 t->work_for = f;
                 if (try_get_n_I_from_other_T_local_task_list_2_T_local_task_list_safe(t, other_t) >
                     0) {
@@ -260,6 +261,9 @@ void get_instance(T *t) {
         return;
     }
     remove_T_from_R_busy_task_list_safe(t, t->work_for->r);
+    //这个地方那个存在一个FUTEX的BUG,当把一个T放入idle之后,这个T马上就会被感知的,并被从idle中拿出,并尝试唤醒,由于此时还没有进行sleep,
+    //这将导致,唤醒操作没有意义,且这个T在执行睡眠后将无法在被唤醒
+    //这个Bug暂时无解,因为,要想保证上述情况只能加锁,但是睡眠之后无法解锁,因此锁机制没法用,目前只能使用信号量来解决
     put_T_into_R_idle_task_list_safe(t, t->work_for->r);
     thread_sleep(t);
     goto find;
@@ -292,10 +296,7 @@ T *creat_T(I *i, F *f) {
         return NULL;
     }
     if (init_task(t, i, f)) {
-        //只要不为空就放到busy队列
-        if (i != NULL) {
-            put_T_into_R_busy_task_list_safe(t, f->r);
-        }
+        put_T_into_R_busy_task_list_safe(t, f->r);
         //保证在执行子线程之前，数据都是正确写入的，因此在此函数后面父进程不应该再执行任何有意义的操作
         if (bind_os_thread(t)) {
             return t;
@@ -303,9 +304,7 @@ T *creat_T(I *i, F *f) {
     }
     //到这里说明存在创建的错误
     //错误处理：从busy队列中移除，并栈空间
-    if (i != NULL) {
-        remove_T_from_R_busy_task_list_safe(t, f->r);
-    }
+    remove_T_from_R_busy_task_list_safe(t, f->r);
     free(t);
     return NULL;
 }
@@ -318,6 +317,7 @@ bool init_task(T *t, I *i, F *f) {
     //如果未开启，那么直接制定deal_with，可以立马执行
     t->futex_word = DEFAULT_FUTEX_WORD;
     sem_init(&t->sem_word, 0, 0);
+    t->status = None;
     t->work_for = f;
     t->deal_with = (((i == NULL || f->concurrent_enable) ? NULL : i));
     t->direct_run = (((i == NULL || f->concurrent_enable) ? false : true));
@@ -367,18 +367,24 @@ bool bind_os_thread_(T *t) {
 }
 
 void put_T_into_R_idle_task_list_safe(T *t, R *r) {
+    if (NULL == t || None != t->status)
+        never_reach("can't put_T_into_R_idle_task_list_safe right\n");
     pthread_mutex_lock(&r->task_idle_lock);
     t->work_for = NULL;
     t->deal_with = NULL;
+    t->status = Idle;
     list_add(&t->task_idle_list, &r->task_idle_head);
     r->task_idle_count++;
     pthread_mutex_unlock(&r->task_idle_lock);
 }
 
 void remove_T_from_R_idle_task_list_safe(T *t, R *r) {
+    if (NULL == t || Idle != t->status)
+        never_reach("can't remove_T_from_R_idle_task_list_safe right\n");
     if (r->task_idle_count > 0) {
         pthread_mutex_lock(&r->task_idle_lock);
         if (r->task_idle_count > 0) {
+            t->status = None;
             list_del(&t->task_idle_list);
             r->task_idle_count--;
         }
@@ -387,16 +393,22 @@ void remove_T_from_R_idle_task_list_safe(T *t, R *r) {
 }
 
 void put_T_into_R_busy_task_list_safe(T *t, R *r) {
+    if (NULL == t || None != t->status)
+        never_reach("can't put_T_into_R_busy_task_list_safe right\n");
     pthread_mutex_lock(&r->task_busy_lock);
+    t->status = Busy;
     list_add(&t->task_busy_list, &r->task_busy_head);
     r->task_busy_count++;
     pthread_mutex_unlock(&r->task_busy_lock);
 }
 
 void remove_T_from_R_busy_task_list_safe(T *t, R *r) {
+    if (NULL == t || Busy != t->status)
+        never_reach("can't remove_T_from_R_busy_task_list_safe right\n");
     if (r->task_busy_count > 0) {
         pthread_mutex_lock(&r->task_busy_lock);
         if (r->task_busy_count > 0) {
+            t->status = None;
             list_del(&t->task_busy_list);
             r->task_busy_count--;
         }
@@ -411,8 +423,9 @@ T *get_T_from_R_idle_task_list_safe(R *r) {
         pthread_mutex_lock(&r->task_idle_lock);
         if (r->task_idle_count > 0) {
             take_an_entry_from_head(t, &r->task_idle_head, task_idle_list)
-            if (NULL == t)
-                never_reach("can't get idle T\n");
+            if (NULL == t || Idle != t->status)
+                never_reach("can't get_T_from_R_idle_task_list_safe right\n");
+            t->status = None;
             list_del(&t->task_idle_list);
             r->task_idle_count--;
         }
