@@ -17,4 +17,4 @@ add_executable(tpfaas
         resource/resource.c
         instance/instance.c instance/instance.h
         doc/RFIT-model.h
-        test/test.h test/test.c)
+        test/test.h test/test.c tool/sort.h tool/time_k.h)

@@ -17,7 +17,7 @@ static inline void never_reach(const char *msg) {
         m++;
 }
 
-static inline void print_info() {
+static inline void print_task_info() {
     R *r;
     F *f;
     int list_busy_count = 0, list_idle_count = 0;

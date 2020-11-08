@@ -11,13 +11,15 @@
 #include <task/task.h>
 #include <sync/sync.h>
 #include <unistd.h>
+#include <tool/time_k.h>
 #include "tool/list_head.h"
 
 extern list_head task_list_head;
 extern list_head func_list_head;
 
 void *taskF(void *arg) {
-    printf("run %d\n", (int) (arg));
+    usleep(100 * MS_US);
+//    printf("run %d\n", (int) (arg));
     return NULL;
 }
 
