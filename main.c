@@ -13,7 +13,7 @@
 
 #define Q_COUNT 1000
 
-int main() {
+int main_() {
     INIT_LOCK()
     resource res = DEFAULT_RESOURCE;
     func_register(taskF, "taskA", res, 10);
