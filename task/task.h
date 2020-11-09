@@ -46,6 +46,8 @@ typedef struct T {
     //针对T正在处理不能并发的函数，此时T是直接被指定一个I的，而不需要自己寻找，此标志位帮助get_instance区分
     bool direct_run;
 
+    struct ucontext_t task_context;
+
     //本地队列的长度
     pthread_mutex_t T_local_wait_i_lock;
     list_head T_local_wait_i_head;

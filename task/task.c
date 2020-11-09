@@ -269,8 +269,7 @@ void get_instance(T *t) {
     goto find;
 }
 
-_Noreturn void *task_done(void *arg) {
-    T *t = (T *) arg;
+_Noreturn void *task_done_(T *t) {
     handle_request:
     if (t->deal_with != NULL && !t->direct_run) {
         if (t->work_for->concurrent_enable) {
@@ -284,8 +283,17 @@ _Noreturn void *task_done(void *arg) {
     //get_function如果找不到function，那么将一直睡眠，一旦返回说明已经找到
     get_instance(t);
     //找到的instance被写到了task的deal_with中
-    t->work_for->entry_addr(t->deal_with->arg);
+    I *i = t->deal_with;
+    i->ucontext.uc_link = &t->task_context;
+    makecontext(&i->ucontext, (void (*)(void)) i->f->entry_addr, 1, (int) i->arg);
+    setcontext(&t->deal_with->ucontext);
     goto handle_request;
+}
+
+_Noreturn void *task_done(void *arg) {
+    T *t = (T *) arg;
+    getcontext(&t->task_context);
+    task_done_(t);
 }
 
 //i可以为NULL

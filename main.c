@@ -11,21 +11,24 @@
 #include "sync/lock.h"
 #include "instance/instance.h"
 
-#define Q_COUNT 1000
+#define Q_COUNT 50000
 
-int main_() {
+int main() {
     INIT_LOCK()
     resource res = DEFAULT_RESOURCE;
-    func_register(taskF, "taskA", res, 10);
+    func_register((void *(*)(void *)) taskF, "taskA", res, 100);
     F *f_A = get_func("taskA");
 
     struct timeval start[Q_COUNT], end[Q_COUNT];
     for (int i = 1; i <= Q_COUNT; ++i) {
         gettimeofday(&start[i - 1], NULL);  /*测试起始时间*/
-        make_request(f_A, (void *) i);
+        make_request(f_A, i);
 //        usleep(10 * MS_US);
         gettimeofday(&end[i - 1], NULL);   /*测试终止时间*/
     }
+
+
+    sleep(5);
 
     long time_diff[Q_COUNT];
     long mean = 0;
@@ -35,7 +38,7 @@ int main_() {
     }
     mean /= Q_COUNT;
     qsort(time_diff, Q_COUNT, sizeof(long), cmp_long);
-    printf("Min:\t\t%ld\nMax:\t\t%ld\nMiddle:\t\t%ld\nMean:\t\t%ld\n", time_diff[0], time_diff[Q_COUNT - 1],
+    printf("Min:\t\t%ldus\nMax:\t\t%ldus\nMiddle:\t\t%ldus\nMean:\t\t%ldus\n", time_diff[0], time_diff[Q_COUNT - 1],
            time_diff[Q_COUNT / 2], mean);
 
 
