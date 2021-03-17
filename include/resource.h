@@ -5,7 +5,7 @@
 #ifndef TPFAAS_RESOURCE_H
 #define TPFAAS_RESOURCE_H
 
-#include "tool/list_head.h"
+#include "include/list_head.h"
 #include "pthread.h"
 
 #define CPU_DEFAULT_SHARES 1024

@@ -5,8 +5,8 @@
 #ifndef TPFAAS_INSTANCE_H
 #define TPFAAS_INSTANCE_H
 
-#include "tool/list_head.h"
-#include "function/function.h"
+#include "include/list_head.h"
+#include "function.h"
 #include <string.h>
 #include <ucontext.h>
 #include <fcgiapp.h>

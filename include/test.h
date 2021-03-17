@@ -5,14 +5,14 @@
 #ifndef TPFAAS_TEST_H
 #define TPFAAS_TEST_H
 
-#include <resource/resource.h>
-#include <function/function.h>
+#include <include/resource.h>
+#include <include/function.h>
 #include <string.h>
-#include <task/task.h>
-#include <sync/sync.h>
+#include <include/task.h>
+#include <include/sync.h>
 #include <unistd.h>
-#include <tool/time_k.h>
-#include "tool/list_head.h"
+#include <include/time_k.h>
+#include "include/list_head.h"
 
 extern list_head task_list_head;
 extern list_head func_list_head;

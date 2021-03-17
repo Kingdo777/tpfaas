@@ -7,7 +7,7 @@
 
 #include <stdbool.h>
 #include <fcgiapp.h>
-#include "resource/resource.h"
+#include "resource.h"
 
 //调用某个function
 #define FUN(f, arg) ((void *(*)(void *))(get_func(f)->entry_addr))(arg);

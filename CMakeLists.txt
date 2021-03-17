@@ -9,17 +9,15 @@ include_directories(include)
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g")
 
 add_executable(tpfaas
-        main.c
-        invoke.c invoke.h
-        function/function.c function/function.h
-        resource/resource.h
-        sync/sync.c sync/sync.h sync/lock.h
-        tool/list_head.h tool/print.h tool/list_head.c
-        task/task.c task/task.h
-        resource/resource.c
-        instance/instance.c instance/instance.h
-        doc/RFIT-model.h
-        test/test.h test/test.c tool/sort.h tool/time_k.h
-        tool/debug.c)
+        src/main.c
+        src/invoke.c
+        src/function/function.c
+        src/sync/sync.c include/sync.h
+        src/tool/list_head.c
+        src/task/task.c
+        src/resource/resource.c
+        src/instance/instance.c
+        include/test.h src/test/test.c
+        src/tool/debug.c)
 
 target_link_libraries(${PROJECT_NAME} -lfcgi -lpthread)

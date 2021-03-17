@@ -6,8 +6,8 @@
 #define TPFAAS_SYNC_H
 
 #include <limits.h>
-#include "function/function.h"
-#include "task/task.h"
+#include "function.h"
+#include "task.h"
 
 #define DEFAULT_FUTEX_WORD 7
 #define errExit(msg)    do { perror(msg); exit(EXIT_FAILURE);} while (0)

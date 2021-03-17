@@ -5,11 +5,11 @@
 #ifndef TPFAAS_TASK_H
 #define TPFAAS_TASK_H
 
-#include "tool/list_head.h"
-#include "function/function.h"
+#include "include/list_head.h"
+#include "function.h"
 #include <stdlib.h>
 #include <semaphore.h>
-#include "instance/instance.h"
+#include "instance.h"
 
 extern void gogo_switch_new_free_old(void *new_stack, void *old_stack);
 

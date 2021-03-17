@@ -8,8 +8,8 @@
 #include <pthread.h>
 #include <limits.h>
 #include "function.h"
-#include "tool/list_head.h"
-#include "resource/resource.h"
+#include "include/list_head.h"
+#include "include/resource.h"
 
 
 LIST_HEAD(func_list_head)

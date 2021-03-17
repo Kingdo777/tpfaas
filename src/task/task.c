@@ -4,12 +4,12 @@
 #define _GNU_SOURCE
 
 #include <sched.h>
-#include "sync/sync.h"
+#include "include/sync.h"
 #include <stdio.h>
 #include <errno.h>
 #include <pthread.h>
-#include <tool/print.h>
-#include "tool/list_head.h"
+#include <include/print.h>
+#include "include/list_head.h"
 #include "task.h"
 
 LIST_HEAD(task_list_head)

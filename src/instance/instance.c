@@ -1,13 +1,13 @@
 //
 // Created by kingdo on 2020/10/23.
 //
-#include <function/function.h>
+#include <include/function.h>
 #include <stdio.h>
 #include <pthread.h>
-#include <task/task.h>
-#include <sync/sync.h>
+#include <include/task.h>
+#include <include/sync.h>
 #include <malloc.h>
-#include <tool/print.h>
+#include <include/print.h>
 #include "instance.h"
 
 

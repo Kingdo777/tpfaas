@@ -6,7 +6,7 @@
 #include <stdlib.h>
 #include <pthread.h>
 #include "resource.h"
-#include "tool/list_head.h"
+#include "include/list_head.h"
 
 LIST_HEAD(res_list_head);
 

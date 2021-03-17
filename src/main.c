@@ -3,13 +3,9 @@
 //
 
 #include <stdio.h>
-#include <unistd.h>
-#include <test/test.h>
-#include <sys/time.h>
-#include <tool/sort.h>
-#include "tool/print.h"
-#include "sync/lock.h"
-#include "instance/instance.h"
+#include <include/test.h>
+#include "include/lock.h"
+#include "include/instance.h"
 #include <fcgiapp.h>
 void debug_trace_init();
 

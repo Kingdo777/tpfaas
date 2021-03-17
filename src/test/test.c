@@ -6,7 +6,7 @@
 #include <malloc.h>
 #include <wait.h>
 #include <ucontext.h>
-#include <instance/instance.h>
+#include <include/instance.h>
 
 
 void *add() {
