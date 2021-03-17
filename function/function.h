@@ -6,6 +6,7 @@
 #define TPFAAS_FUNCTION_H
 
 #include <stdbool.h>
+#include <fcgiapp.h>
 #include "resource/resource.h"
 
 //调用某个function
@@ -17,7 +18,7 @@ typedef struct {
     const char *name;
 
     //function的入口地址
-    void *(*entry_addr)(void *);
+    void (*entry_addr)(FCGX_Request *);
 
     //资源限制
     R *r;
@@ -49,7 +50,7 @@ typedef struct {
     INIT_LIST_HEAD(&f->F_global_wait_i_head); \
 }while(0);
 
-bool func_register(void *(*entry_addr)(void *), const char *function_name, resource res, int concurrent_count);
+bool func_register(void (*entry_addr)(FCGX_Request *), const char *function_name, resource res, int concurrent_count);
 
 F *get_func_from_name(const char *function_name);
 

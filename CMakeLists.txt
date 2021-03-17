@@ -2,9 +2,11 @@ cmake_minimum_required(VERSION 3.12)
 project(tpfaas C ASM)
 
 set(CMAKE_C_STANDARD 11)
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -pthread")
 
 include_directories(.)
+include_directories(include)
+
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g")
 
 add_executable(tpfaas
         main.c
@@ -17,4 +19,7 @@ add_executable(tpfaas
         resource/resource.c
         instance/instance.c instance/instance.h
         doc/RFIT-model.h
-        test/test.h test/test.c tool/sort.h tool/time_k.h)
+        test/test.h test/test.c tool/sort.h tool/time_k.h
+        tool/debug.c)
+
+target_link_libraries(${PROJECT_NAME} -lfcgi -lpthread)

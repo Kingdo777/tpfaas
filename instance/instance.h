@@ -9,12 +9,13 @@
 #include "function/function.h"
 #include <string.h>
 #include <ucontext.h>
+#include <fcgiapp.h>
 
 #define STACK_DEFAULT_SIZE (8*1024)
 
 typedef struct {
     F *f;
-    int arg;
+    FCGX_Request *request;
     ucontext_t ucontext;
     list_head wait_i_list;
 } I;
@@ -25,7 +26,7 @@ typedef struct {
 
 void release_instance_space(I *i);
 
-void make_request(F *f, int arg);
+void make_request(F *f, FCGX_Request *req);
 
 
 #endif //TPFAAS_INSTANCE_H

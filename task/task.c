@@ -285,7 +285,7 @@ _Noreturn void *task_done_(T *t) {
     //找到的instance被写到了task的deal_with中
     I *i = t->deal_with;
     i->ucontext.uc_link = &t->task_context;
-    makecontext(&i->ucontext, (void (*)(void)) i->f->entry_addr, 1, (int) i->arg);
+    makecontext(&i->ucontext, (void (*)(void)) i->f->entry_addr, 1, i->request);
     setcontext(&t->deal_with->ucontext);
     goto handle_request;
 }

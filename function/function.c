@@ -28,7 +28,8 @@ bool check_func_name_uniq(const char *function_name) {
 }
 
 
-void init_func(F *f, void *(*entry_addr)(void *), const char *function_name, resource res, int concurrent_count) {
+void
+init_func(F *f, void (*entry_addr)(FCGX_Request *), const char *function_name, resource res, int concurrent_count) {
     INIT_F_LIST_HEAD(f)
     f->name = function_name;
     f->r = get_res(res);
@@ -45,7 +46,7 @@ void init_func(F *f, void *(*entry_addr)(void *), const char *function_name, res
 
 }
 
-bool func_register(void *(*entry_addr)(void *), const char *function_name, resource res, int concurrent_count) {
+bool func_register(void (*entry_addr)(FCGX_Request *), const char *function_name, resource res, int concurrent_count) {
     if (!check_func_name_uniq(function_name))
         return false;
     F *f = (F *) malloc(sizeof(F));

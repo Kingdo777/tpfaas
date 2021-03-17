@@ -11,9 +11,9 @@
 #include "instance.h"
 
 
-bool init_instance(I *i, F *f, int arg) {
+bool init_instance(I *i, F *f, FCGX_Request *req) {
     i->f = f;
-    i->arg = arg;
+    i->request = req;
     getcontext(&i->ucontext);
     i->ucontext.uc_stack.ss_sp = malloc(STACK_DEFAULT_SIZE);
     i->ucontext.uc_stack.ss_size = STACK_DEFAULT_SIZE;
@@ -21,13 +21,13 @@ bool init_instance(I *i, F *f, int arg) {
     return true;
 }
 
-I *create_instance(F *f, int arg) {
+I *create_instance(F *f, FCGX_Request *req) {
     I *i = malloc(sizeof(I));
     if (i == NULL) {
         printf("malloc T space fault\n");
         return NULL;
     }
-    if (init_instance(i, f, arg)) {
+    if (init_instance(i, f, req)) {
         return i;
     }
     return NULL;
@@ -78,9 +78,9 @@ void release_instance_space(I *i) {
     }
 }
 
-void make_request(F *f, int arg) {
+void make_request(F *f, FCGX_Request *req) {
     bool need_wake_T;
-    I *i = create_instance(f, arg);
+    I *i = create_instance(f, req);
     if (NULL != i) {
         need_wake_T = add_2_F_safe(i);
         //此时,如果F是可并发的,也就意味着,i已经被放入了全局F队列中,也就说,I随时可能被拿去执行,然后被释放,因此v此时的I可能是free的
