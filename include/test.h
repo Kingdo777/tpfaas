@@ -27,16 +27,21 @@ void handle(char *req, char *res) {
 void taskF(FCGX_Request *request) {
     size_t contentLen;
     char *content, *uri;
-    FCGX_FPrintF(request->out, "Content-type: text/json\r\n\r\n");
     uri = FCGX_GetParam("SCRIPT_NAME", request->envp);
     if (!strcmp("/init", uri)) {
-        FCGX_FPrintF(request->out, "{\"ok\":true}\n");
+        FCGX_FPrintF(request->out, "Content-type: application/json\r\n"
+                                   "Content-length: %d\r\n"
+                                   "\r\n"
+                                   "{\"ok\":true}\n", strlen("{\"ok\":true}\n"));
     } else if (!strcmp("/run", uri)) {
         contentLen = strtoul(FCGX_GetParam("CONTENT_LENGTH", request->envp), NULL, 10);
         content = (char *) malloc(contentLen);
         FCGX_GetStr(content, contentLen, request->in);
         handle(content, content);
-        FCGX_FPrintF(request->out, "%s", content);
+        FCGX_FPrintF(request->out, "Content-type: application/json\r\n"
+                                   "Content-length: %d\r\n"
+                                   "\r\n"
+                                   "%s", strlen("{\"ok\":true}\n"), content);
         free(content);
     }
     FCGX_Finish_r(request);
