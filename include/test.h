@@ -41,7 +41,7 @@ void taskF(FCGX_Request *request) {
         FCGX_FPrintF(request->out, "Content-type: application/json\r\n"
                                    "Content-length: %d\r\n"
                                    "\r\n"
-                                   "%s", strlen("{\"ok\":true}\n"), content);
+                                   "%s", strlen(content), content);
         free(content);
     }
     FCGX_Finish_r(request);
