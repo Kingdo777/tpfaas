@@ -10,6 +10,6 @@ COPY fcgi/lib/* /lib/
 COPY build/tpfaas /action/tpfaas
 COPY config/nginx-server.conf /etc/nginx/sites-enabled/default
 COPY docker-entrypoint.sh .
-EXPOSE 80
+EXPOSE 8080
 ENTRYPOINT ["/action/docker-entrypoint.sh"]
 

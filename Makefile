@@ -1,15 +1,18 @@
 curl:
-	echo "{\"name\":\"kingdo\"}" > test.json
-	curl -d "@test.json" http://127.0.0.1/cmd
+	echo "{\"value\":{\"name\":\"Kingdo\"}}" > test.json
+	curl -d "@test.json" http://127.0.0.1:8080/init
+	curl -d "@test.json" http://127.0.0.1:8080/run
 	rm test.json
 
-run:distDocker
-	docker stop tpfaas
-	docker run --rm --name tpfaas -p 80:80 -d kingdo/tpfaas
+runDocker:buildDocker
+	-docker stop tpfaas
+	docker run --rm --name tpfaas -p 8080:8080 -d kingdo/tpfaas
 
-distDocker:build/tpfaas
+buildDocker:build
 	docker build -t  kingdo/tpfaas .
 
+.PHONY:build
 build:
+	mkdir -p build
 	cd build && cmake .. && make tpfaas
 

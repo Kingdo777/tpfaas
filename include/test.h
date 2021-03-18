@@ -5,49 +5,42 @@
 #ifndef TPFAAS_TEST_H
 #define TPFAAS_TEST_H
 
-#include <include/resource.h>
-#include <include/function.h>
-#include <string.h>
-#include <include/task.h>
-#include <include/sync.h>
-#include <unistd.h>
-#include <include/time_k.h>
-#include "include/list_head.h"
 
-extern list_head task_list_head;
-extern list_head func_list_head;
+#include <fcgiapp.h>
+#include <string.h>
+#include <stdlib.h>
+#include "cJSON.h"
+
+void handle(char *req, char *res) {
+    char data[1000];
+    cJSON *root = cJSON_Parse(req);
+    sprintf(data, "Hello,%s", cJSON_GetObjectItem(cJSON_GetObjectItem(root, "value"), "name")->valuestring);
+    cJSON *content = cJSON_Parse("{}");
+    cJSON *msg = cJSON_Parse("{}");
+    cJSON_AddStringToObject(content, "C", data);
+    cJSON_AddItemToObject(msg, "msg", content);
+    strcpy(res, cJSON_Print(msg));
+    cJSON_Delete(root);
+    cJSON_Delete(msg);
+}
 
 void taskF(FCGX_Request *request) {
     size_t contentLen;
-    char *requestMethod, *content;
-    requestMethod = FCGX_GetParam("REQUEST_METHOD", request->envp);
+    char *content, *uri;
     FCGX_FPrintF(request->out, "Content-type: text/json\r\n\r\n");
-    for (char **envp = request->envp; *envp != NULL; envp++) {
-        FCGX_FPrintF(request->out, "%s \n", *envp);
-    }
-    if (!strcmp("GET", requestMethod)) {
-        FCGX_FPrintF(request->out, "<h1>%s</h1>", requestMethod);
-    } else {
+    uri = FCGX_GetParam("SCRIPT_NAME", request->envp);
+    if (!strcmp("/init", uri)) {
+        FCGX_FPrintF(request->out, "{\"ok\":true}\n");
+    } else if (!strcmp("/run", uri)) {
         contentLen = strtoul(FCGX_GetParam("CONTENT_LENGTH", request->envp), NULL, 10);
         content = (char *) malloc(contentLen);
         FCGX_GetStr(content, contentLen, request->in);
-        FCGX_FPrintF(request->out, "<h1>%s</h1>" "<p>%s</p>", requestMethod, content);
+        handle(content, content);
+        FCGX_FPrintF(request->out, "%s", content);
         free(content);
     }
     FCGX_Finish_r(request);
     free(request);
-}
-
-static void function_test() {
-    resource res = DEFAULT_RESOURCE;
-    func_register(taskF, "taskA", res, 1);
-    func_register(taskF, "taskB", res, 10);
-    F *f;
-    list_for_each_entry_prev(f, &func_list_head, func_list_list) {
-        const char *func_name = f->name;
-        printf("%s RUN:\n", func_name);
-        FUN(func_name, "hello world\n")
-    }
 }
 
 #endif //TPFAAS_TEST_H

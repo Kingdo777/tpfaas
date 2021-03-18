@@ -33,9 +33,17 @@ int main() {
         rc = FCGX_Accept_r(request);
         if (rc < 0){
             printf("rc < 0\n");
+            FCGX_Finish_r(request);
             free(request);
             break;
         }
+
+//        if (strcmp("POST",FCGX_GetParam("REQUEST_METHOD",request->envp))!=0){
+//            printf("REQUEST_METHOD is not POST\n");
+//            FCGX_Finish_r(request);
+//            free(request);
+//            break;
+//        }
         make_request(f_A, request);
     }
 }

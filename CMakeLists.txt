@@ -13,11 +13,9 @@ add_executable(tpfaas
         src/invoke.c
         src/function/function.c
         src/sync/sync.c include/sync.h
-        src/tool/list_head.c
+        src/tool/list_head.c src/tool/debug.c src/tool/cJSON.c
         src/task/task.c
         src/resource/resource.c
-        src/instance/instance.c
-        include/test.h src/test/test.c
-        src/tool/debug.c)
+        src/instance/instance.c)
 
-target_link_libraries(${PROJECT_NAME} -lfcgi -lpthread)
+target_link_libraries(${PROJECT_NAME} -lfcgi -lpthread -lm)
