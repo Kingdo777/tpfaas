@@ -48,4 +48,8 @@ void taskF(FCGX_Request *request) {
     free(request);
 }
 
+void taskT(FCGX_Request *request) {
+    printf("Kingdo %d\n", (int) request);
+}
+
 #endif //TPFAAS_TEST_H

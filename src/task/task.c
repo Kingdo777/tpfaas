@@ -295,10 +295,11 @@ _Noreturn void *task_done(void *arg) {
     getcontext(&t->task_context);
     task_done_(t);
 }
-
+extern uint malloc_count;
 //i可以为NULL
 T *creat_T(I *i, F *f) {
     T *t = malloc(sizeof(T));
+    malloc_count++;
     if (t == NULL) {
         printf("malloc T space fault\n");
         return NULL;
@@ -351,7 +352,9 @@ bool bind_os_thread(T *t) {
 
 bool bind_os_thread_(T *t) {
     int ret;
-    ret = pthread_create(&t->tgid, NULL, task_done, t);
+    pthread_attr_t attr;
+    pthread_attr_init (&attr);pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+    ret = pthread_create(&t->tgid, &attr, task_done, t);
     if (ret != 0) {
         switch (ret) {
             case EAGAIN:
