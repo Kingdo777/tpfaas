@@ -28,7 +28,12 @@ void taskF(FCGX_Request *request) {
     size_t contentLen;
     char *content, *uri;
     uri = FCGX_GetParam("SCRIPT_NAME", request->envp);
-    if (!strcmp("/init", uri)) {
+    if (!strcmp("/", uri)) {
+        FCGX_FPrintF(request->out, "Content-type: application/json\r\n"
+                                   "Content-length: %d\r\n"
+                                   "\r\n"
+                                   "Hello,World\n", strlen("Hello,World\n"));
+    } else if (!strcmp("/init", uri)) {
         FCGX_FPrintF(request->out, "Content-type: application/json\r\n"
                                    "Content-length: %d\r\n"
                                    "\r\n"
