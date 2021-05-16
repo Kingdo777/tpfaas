@@ -1,0 +1,230 @@
+syntax = "proto3";
+
+package faabric;
+
+// ---------------------------------------------
+// FUNCTION SCHEDULING
+// ---------------------------------------------
+
+message BatchExecuteRequest {
+    enum BatchExecuteType {
+        FUNCTIONS = 0;
+        THREADS = 1;
+        PROCESSES = 2;
+    }
+
+    BatchExecuteType type = 1;
+
+    int32 id = 2;
+
+    // Shared snapshot used for threads
+    string snapshotKey = 4;
+    int32 snapshotSize = 5;
+
+    repeated Message messages = 6;
+    repeated int32 returnValues = 7;
+}
+
+message ResourceRequest {
+    int32 empty = 1;
+}
+
+message HostResources {
+    int32 cores = 1;
+    int32 functionsInFlight = 2;
+    int32 boundExecutors = 3;
+}
+
+message UnregisterRequest {
+    string host = 1;
+    Message function = 2;
+}
+
+service FunctionRPCService {
+    rpc Flush (Message) returns (FunctionStatusResponse) {
+    }
+
+    rpc MPICall (MPIMessage) returns (FunctionStatusResponse) {
+    }
+
+    rpc GetResources (ResourceRequest) returns (HostResources) {
+    }
+
+    rpc ExecuteFunctions (BatchExecuteRequest) returns (FunctionStatusResponse) {
+    }
+
+    rpc Unregister (UnregisterRequest) returns (FunctionStatusResponse) {
+    }
+}
+
+message FunctionStatusResponse {
+    enum FunctionStatus {
+        OK = 0;
+        ERROR = 1;
+    }
+    FunctionStatus status = 1;
+}
+
+message MPIMessage {
+    enum MPIMessageType {
+        NORMAL = 0;
+        BARRIER_JOIN = 1;
+        BARRIER_DONE = 2;
+        SCATTER = 3;
+        GATHER = 4;
+        ALLGATHER = 5;
+        REDUCE = 6;
+        SCAN = 7;
+        ALLREDUCE = 8;
+        ALLTOALL = 9;
+        RMA_WRITE = 10;
+        SENDRECV = 11;
+    };
+
+    MPIMessageType messageType = 1;
+
+    int32 id = 2;
+    int32 worldId = 3;
+    int32 sender = 4;
+    int32 destination = 5;
+    int32 type = 6;
+    int32 count = 7;
+    bytes buffer = 8;
+}
+
+message Message {
+    string user = 1;
+    string function = 2;
+    string snapshotKey = 4;
+    int32 snapshotSize = 5;
+    int32 funcPtr = 6;
+    int32 returnValue = 7;
+
+    enum MessageType {
+        CALL = 0;
+        BIND = 1;
+        KILL = 2;
+        EMPTY = 3;
+        FLUSH = 4;
+    }
+
+    MessageType type = 8;
+
+    int64 timestamp = 9;
+    int32 id = 10;
+    string resultKey = 11;
+    string statusKey = 12;
+
+    string executedHost = 15;
+    int64 finishTimestamp = 16;
+
+    bool isAsync = 17;
+    bool isPython = 18;
+    bool isTypescript = 19;
+    bool isStatusRequest = 20;
+    bool isExecGraphRequest = 21;
+
+    bytes inputData = 23;
+    bytes outputData = 24;
+
+    string pythonUser = 25;
+    string pythonFunction = 26;
+    string pythonEntry = 27;
+
+    bool isMpi = 29;
+    int32 mpiWorldId = 30;
+    int32 mpiRank = 31;
+    int32 mpiWorldSize = 32;
+
+    int32 ompThreadNum = 33;
+    repeated uint32 ompFunctionArgs = 34;
+    int32 ompDepth = 35;
+    int32 ompEffDepth = 36;
+    int32 ompMAL = 37;
+    int32 ompNumThreads = 38;
+
+    string cmdline = 39;
+
+    bool isSgx = 40;
+
+    // fields for SGX attesation
+    string sgxSid = 41;
+    string sgxNonce = 42;
+    string sgxTag = 43;
+    bytes sgxPolicy = 44;
+    bytes sgxResult = 45;
+    
+    string masterHost = 46;
+}
+
+// ---------------------------------------------
+// STATE SERVICE
+// ---------------------------------------------
+
+service StateRPCService {
+    rpc Pull (stream StateChunkRequest) returns (stream StatePart) {
+    }
+    rpc Push (stream StatePart) returns (StateResponse) {
+    }
+    rpc Size(StateRequest) returns (StateSizeResponse) {
+    }
+    rpc Append (StateRequest) returns (StateResponse) {
+    }
+    rpc ClearAppended (StateRequest) returns (StateResponse) {
+    }
+    rpc PullAppended (StateAppendedRequest) returns (StateAppendedResponse) {
+    }
+    rpc Lock (StateRequest) returns (StateResponse) {
+    }
+    rpc Unlock (StateRequest) returns (StateResponse) {
+    }
+    rpc Delete (StateRequest) returns (StateResponse) {
+    }
+}
+
+message StateRequest {
+    string user = 1;
+    string key = 2;
+    bytes data = 3;
+}
+
+message StateChunkRequest {
+    string user = 1;
+    string key = 2;
+    uint64 offset = 3;
+    uint64 chunkSize = 4;
+}
+
+message StateResponse {
+    string user = 1;
+    string key = 2;
+    bytes data = 3;
+}
+
+message StatePart {
+    string user = 1;
+    string key = 2;
+    uint64 offset = 3;
+    bytes data = 4;
+}
+
+message StateSizeResponse {
+    string user = 1;
+    string key = 2;
+    uint64 stateSize = 3;
+}
+
+message StateAppendedRequest {
+    string user = 1;
+    string key = 2;
+    uint32 nValues = 3;
+}
+
+message StateAppendedResponse {
+    message AppendedValue {
+        bytes data = 2;
+    }
+    string user = 1;
+    string key = 2;
+    repeated AppendedValue values = 3;
+}
