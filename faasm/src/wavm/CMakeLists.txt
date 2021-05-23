@@ -21,7 +21,6 @@ set(LIB_FILES
         messages.cpp
         mpi.cpp
         network.cpp
-        openmp.cpp
         process.cpp
         scheduling.cpp
         signals.cpp

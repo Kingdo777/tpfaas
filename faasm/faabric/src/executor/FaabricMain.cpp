@@ -2,12 +2,6 @@
 #include <faabric/util/config.h>
 #include <faabric/util/logging.h>
 
-#if (FAASM_SGX)
-namespace sgx {
-extern void checkSgxSetup();
-}
-#endif
-
 namespace faabric::executor {
 FaabricMain::FaabricMain(faabric::executor::FaabricPool& poolIn)
   : conf(faabric::util::getSystemConfig())
@@ -15,19 +9,18 @@ FaabricMain::FaabricMain(faabric::executor::FaabricPool& poolIn)
   , pool(poolIn)
 {}
 
+// 旨在启动schedule和pool的各种服务
 void FaabricMain::startBackground()
 {
+    // 将本地的host写到全局的redis缓存中
     scheduler.addHostToGlobalSet();
 
     conf.print();
 
-#if (FAASM_SGX)
-    // Check for SGX capability and create shared enclave
-    sgx::checkSgxSetup();
-#endif
-
     // Start thread pool in background
     pool.startThreadPool();
+
+    // 下面三个是grpc的服务器端，也就是微服务
 
     // In-memory state
     pool.startStateServer();

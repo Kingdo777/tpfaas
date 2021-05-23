@@ -4,11 +4,6 @@
 
 #include <openssl/md5.h>
 
-#if (WAMR_EXECUTION_MODE_INTERP)
-// Import for codegen not needed as it's not supported
-#else
-#include <wamr/WAMRWasmModule.h>
-#endif
 
 #include <wavm/WAVMWasmModule.h>
 
@@ -40,16 +35,7 @@ std::vector<uint8_t> FileLoader::doCodegen(std::vector<uint8_t>& bytes,
                                            const std::string& fileName)
 {
     faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
-    if (conf.wasmVm == "wamr") {
-#if (WAMR_EXECTION_MODE_INTERP)
-        throw std::runtime_error(
-          "WAMR codegen not supported with WAMR interp mode");
-#else
-        return wasm::wamrCodegen(bytes);
-#endif
-    } else {
         return wasm::wavmCodegen(bytes, fileName);
-    }
 }
 
 void FileLoader::codegenForFunction(faabric::Message& msg)
@@ -67,11 +53,7 @@ void FileLoader::codegenForFunction(faabric::Message& msg)
     std::vector<uint8_t> newHash = hashBytes(bytes);
     std::vector<uint8_t> oldHash;
     faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
-    if (conf.wasmVm == "wamr") {
-        oldHash = loadFunctionWamrAotHash(msg);
-    } else {
-        oldHash = loadFunctionObjectHash(msg);
-    }
+    oldHash = loadFunctionObjectHash(msg);
 
     if ((!oldHash.empty()) && newHash == oldHash) {
         logger->debug("Skipping codegen for {}", funcStr);
@@ -92,13 +74,8 @@ void FileLoader::codegenForFunction(faabric::Message& msg)
     }
 
     // Upload the file contents and the hash
-    if (conf.wasmVm == "wamr") {
-        uploadFunctionAotFile(msg, objBytes);
-        uploadFunctionWamrAotHash(msg, newHash);
-    } else {
-        uploadFunctionObjectFile(msg, objBytes);
-        uploadFunctionObjectHash(msg, newHash);
-    }
+    uploadFunctionObjectFile(msg, objBytes);
+    uploadFunctionObjectHash(msg, newHash);
 }
 
 void FileLoader::codegenForSharedObject(const std::string& inputPath)
@@ -122,13 +99,8 @@ void FileLoader::codegenForSharedObject(const std::string& inputPath)
 
     // Do the upload
     faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
-    if (conf.wasmVm == "wamr") {
-        uploadSharedObjectAotFile(inputPath, objBytes);
-        uploadSharedObjectAotHash(inputPath, newHash);
-    } else {
-        uploadSharedObjectObjectFile(inputPath, objBytes);
-        uploadSharedObjectObjectHash(inputPath, newHash);
-    }
+    uploadSharedObjectObjectFile(inputPath, objBytes);
+    uploadSharedObjectObjectHash(inputPath, newHash);
 }
 
 void checkFileExists(const std::string& path)

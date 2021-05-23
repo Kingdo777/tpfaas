@@ -12,15 +12,19 @@ FaabricExecutor::FaabricExecutor(int threadIdxIn)
     const std::shared_ptr<spdlog::logger>& logger = faabric::util::getLogger();
 
     // Set an ID for this Faaslet
+    // 被注释逗笑了，居然出现了Faaslet
     id = faabric::util::getSystemConfig().endpointHost + "_" +
          std::to_string(threadIdx);
 
     logger->debug("Starting executor thread {}", id);
 
     // Listen to bind queue by default
+    // 一开始的时候，监听的是bindQueue，也就是schedule中addFasslet操作
     currentQueue = scheduler.getBindQueue();
 }
 
+// 主要的操作在这里就是切换了currentQueue
+// 此外postBind是比较重要的，这个是有继承类实现的，比如faaslet需要在这里绑定Runtime::Module
 void FaabricExecutor::bindToFunction(const faabric::Message& msg, bool force)
 {
     // If already bound, will be an error, unless forced to rebind to the same
@@ -64,6 +68,7 @@ void FaabricExecutor::finish()
     this->postFinish();
 }
 
+// 调用结束的一个重要工作就是写入结果，执行setFunctionResult，把结果写到redis中
 void FaabricExecutor::finishCall(faabric::Message& msg,
                                  bool success,
                                  const std::string& errorMsg)
@@ -101,6 +106,10 @@ void FaabricExecutor::run()
     const std::shared_ptr<spdlog::logger>& logger = faabric::util::getLogger();
 
     // Wait for next message
+    // 线程一开始都是未绑定的状态，创建之后都会去读bingQueue，如果等到一个绑定请求，就和这个function绑定
+    // 如果一直没有等到，那就超时,超时后将从run返回
+    // 一旦绑定请求，将去读queueMap中所绑定的函数的请求队列，以处理请求
+    // 直到队列为空，超时后run结束
     while (true) {
         try {
             logger->debug("{} waiting for next message", this->id);
@@ -143,7 +152,8 @@ std::string FaabricExecutor::processNextMessage()
     if (msg.type() == faabric::Message_MessageType_FLUSH) {
         flush();
 
-    } else if (msg.type() == faabric::Message_MessageType_BIND) {
+    }
+    else if (msg.type() == faabric::Message_MessageType_BIND) {
         const std::string funcStr = faabric::util::funcToString(msg, false);
         logger->info("{} binding to {}", id, funcStr);
 
@@ -160,6 +170,8 @@ std::string FaabricExecutor::processNextMessage()
     return errorMessage;
 }
 
+// 执行请求，这里核心的代码是由继承类实现的：doExecute
+// 请求结束后，调用finishCall
 std::string FaabricExecutor::executeCall(faabric::Message& call)
 {
     const std::shared_ptr<spdlog::logger>& logger = faabric::util::getLogger();

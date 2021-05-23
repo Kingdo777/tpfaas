@@ -17,7 +17,6 @@ const static std::string funcFile = "function.wasm";
 const static std::string encryptedFuncFile = "function.wasm.enc";
 const static std::string symFile = "function.symbols";
 const static std::string objFile = "function.wasm.o";
-const static std::string wamrAotFile = "function.aot";
 const static std::string confFile = "conf.json";
 
 std::string getRootUrl()
@@ -228,14 +227,6 @@ std::string getFunctionObjectFile(const faabric::Message& msg)
     return path.string();
 }
 
-std::string getFunctionAotFile(const faabric::Message& msg)
-{
-    auto path = getObjectDir(msg);
-    path.append(wamrAotFile);
-
-    return path.string();
-}
-
 std::string getSharedObjectObjectFile(const std::string& realPath)
 {
     boost::filesystem::directory_entry f(realPath);
@@ -289,10 +280,6 @@ std::string funcToString(const faabric::Message& msg, bool includeId)
 
     if (includeId) {
         str += ":" + std::to_string(msg.id());
-    }
-
-    if (msg.issgx()) {
-        str += ":sgx";
     }
 
     return str;

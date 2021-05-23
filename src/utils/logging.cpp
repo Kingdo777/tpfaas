@@ -5,7 +5,7 @@
 
 static std::unordered_map<std::string, std::shared_ptr<spdlog::logger>> loggers;
 
-std::shared_ptr<spdlog::logger> getLogger(const std::string &name) {
+std::shared_ptr<spdlog::logger> &getLogger(const std::string &name) {
     SystemConfig &conf = getSystemConfig();
     if (loggers.count(name) == 0) {
         try {

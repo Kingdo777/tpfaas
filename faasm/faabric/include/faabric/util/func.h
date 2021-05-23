@@ -44,7 +44,6 @@ std::string getFunctionSymbolsFile(const faabric::Message& msg);
 
 std::string getFunctionObjectFile(const faabric::Message& msg);
 
-std::string getFunctionAotFile(const faabric::Message& msg);
 
 std::string getSharedObjectObjectFile(const std::string& realPath);
 

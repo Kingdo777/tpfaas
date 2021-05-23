@@ -42,13 +42,10 @@
 #define WASM_CTORS_FUNC_NAME "__wasm_call_ctors"
 #define ENTRY_FUNC_NAME "_start"
 
-typedef std::pair<std::promise<int32_t>, threads::OpenMPTask> OpenMPTaskPair;
 typedef std::pair<std::promise<int32_t>, threads::PthreadTask> PthreadTaskPair;
 
-typedef faabric::util::Queue<OpenMPTaskPair> OpenMPQueue;
 typedef faabric::util::Queue<PthreadTaskPair> PthreadQueue;
 
-typedef std::unordered_map<int, OpenMPQueue> OpenMPQueueMap;
 
 namespace wasm {
 
@@ -134,17 +131,9 @@ class WasmModule
     virtual void printDebugInfo();
 
     // ----- Threading -----
-    std::future<int32_t> executeOpenMPTask(threads::OpenMPTask t);
-
     std::future<int32_t> executePthreadTask(threads::PthreadTask t);
 
-    void shutdownOpenMPThreads();
-
     void shutdownPthreads();
-
-    virtual int32_t executeAsOMPThread(int threadPoolIdx,
-                                       uint32_t stackTop,
-                                       std::shared_ptr<faabric::Message> msg);
 
     virtual int32_t executeAsPthread(uint32_t stackTop,
                                      std::shared_ptr<faabric::Message> msg);
@@ -168,10 +157,8 @@ class WasmModule
     uint32_t threadPoolSize = 0;
     std::vector<uint32_t> threadStacks;
 
-    OpenMPQueueMap openMPTaskQueueMap;
     PthreadQueue pthreadTaskQueue;
 
-    std::unordered_map<int, std::thread> openMPThreads;
     std::vector<std::thread> pthreads;
 
     std::mutex threadsMutex;

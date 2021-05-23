@@ -205,21 +205,29 @@ Scheduler& getScheduler()
     return scheduler;
 }
 
+// 批量调用请求，响应单请求的call操作，也将通过此函数执行
+// forceLocal决定了是否在本地执行，在本地执行意味着无需调度
+// 由handler发来的请求当然是进行一次调度的，调度的请求将通过grpc再次调用对应host上的此函数，那时候forceLocal就是true
 std::vector<std::string> Scheduler::callFunctions(
   faabric::BatchExecuteRequest& req,
   bool forceLocal)
 {
     auto logger = faabric::util::getLogger();
 
+    // 批量处理的个数，对于callFunction就是1
     int nMessages = req.messages_size();
-    bool isThreads = req.type() == req.THREADS;
+    // req的类型，对于普通请求，默认是Function（还可能是THREADS和PROCESS，估计后面两者没有实现）
+    bool isThreads = req.type() == faabric::BatchExecuteRequest::THREADS;
+    // 最终的返回值，用于记录每个请求被那个host处理，用处没有
     std::vector<std::string> executed(nMessages);
 
-    // Note, we assume all the messages are for the same function and master
-    // host
+    // Note, we assume all the messages are for the same function and master host
+    // 作者默认同一批req的message来自同一function和master host，master host指的是此请求由那个endpoint接收到，在FaabricEndpointHandler
+    // 中形成了msg，并配置了其master host
     const faabric::Message& firstMsg = req.messages().at(0);
+    // 因为同一批的请求的msg都是相同的类型，所以下面的信息是共享的
     std::string funcStr = faabric::util::funcToString(firstMsg, false);
-    std::string masterHost = firstMsg.masterhost();
+    const std::string& masterHost = firstMsg.masterhost();
     if (masterHost.empty()) {
         std::string funcStrWithId = faabric::util::funcToString(firstMsg, true);
         logger->error("Request {} has no master host", funcStrWithId);
@@ -228,10 +236,13 @@ std::vector<std::string> Scheduler::callFunctions(
 
     // For threads/ processes we need to have a snapshot key and be ready to
     // push the snapshot to other hosts
+    // 对于线程和进程，需要获取他的snapshotData，但是后面并没有使用
+    // 就很搞笑，自始至终找不到,在那个地方构建的snapshot，唯一调用推送snap的代码，
+    // 居然是首先从本地的snapCache中拉去，在使用grpc传送，就有点搞不懂
     faabric::util::SnapshotData snapshotData;
-    std::string snapshotKey = firstMsg.snapshotkey();
+    const std::string& snapshotKey = firstMsg.snapshotkey();
     bool snapshotNeeded =
-      req.type() == req.THREADS || req.type() == req.PROCESSES;
+      req.type() == faabric::BatchExecuteRequest::THREADS || req.type() == faabric::BatchExecuteRequest::PROCESSES;
     if (snapshotNeeded) {
         if (snapshotKey.empty()) {
             logger->error("No snapshot provided for {}", funcStr);
@@ -243,22 +254,29 @@ std::vector<std::string> Scheduler::callFunctions(
           faabric::snapshot::getSnapshotRegistry();
         snapshotData = reg.getSnapshot(snapshotKey);
     }
-
+    // getFunctionQueue函数，将返回一个message的队列，不同的Function拥有不同的队列
+    // executor在绑定Function时，会将function对应的队列引用到自己的字段中，从而接收到请求
     auto funcQueue = this->getFunctionQueue(firstMsg);
 
     // TODO - more fine-grained locking. This blocks all functions
     // Lock the whole scheduler to be safe
+    // mx是读写锁，这里的FullLock是写锁
     faabric::util::FullLock lock(mx);
 
     // Handle forced local execution
+    // 如果请求，一定在本地进行处理
     if (forceLocal) {
         logger->debug("Executing {} x {} locally", nMessages, funcStr);
 
         for (int i = 0; i < nMessages; i++) {
+            // 拿到req中的所有msg
             faabric::Message msg = req.messages().at(i);
-
+            // 放入请求队列，这样executor就会感知到
             funcQueue->enqueue(msg);
+            // 增加inFlightCounts和thisHostResources的计数
             incrementInFlightCount(msg);
+            // 增加一个faaslet，如果当前的faaslet数目小于正在处理的请求数目
+            // 在这里仅仅是将其放入bindQueue，正真的启动操作是交给excutor的
             addFaaslets(msg);
 
             executed.at(i) = thisHost;
@@ -267,6 +285,7 @@ std::vector<std::string> Scheduler::callFunctions(
         // If we're not the master host, we need to forward the request back to
         // the master host. This will only happen if a nested batch execution
         // happens.
+        // 这里很迷惑
         if (masterHost != thisHost) {
             logger->debug("Forwarding {} {} back to master {}",
                           nMessages,
@@ -275,15 +294,25 @@ std::vector<std::string> Scheduler::callFunctions(
 
             FunctionCallClient c(masterHost);
             c.executeFunctions(req);
-        } else {
+        }
+        // 调度算法，首先检查本地有无空闲的core，有的话在本地执行
+        // 如果没有则遍历曾经执行过的此函数的host，有无空闲的core，有的话在这些host上执行
+        // 如果还是没有则遍历从来没有执行过此函数的host，若有空闲的core，有的话那么就在这个host上执行，同时将其放入执行过此函数的集合，以供第二次遍历
+        // 如果都咩有，那就强制在本地执行
+
+        // 核心想法就是先考虑core，在考虑数据局部性
+        // 整体评价就是烂，起码吧master host放入注册过的host集合吧
+        else {
+            // 下面这个小小的算法，应该就是调度策略了，看上去就一般
+
             // At this point we know we're the master host, and we've not been
             // asked to force full local execution.
 
             // Work out how many we can handle locally
-            int cores = thisHostResources.cores();
-            int available = cores - thisHostResources.functionsinflight();
-            available = std::max<int>(available, 0);
-            int nLocally = std::min<int>(available, nMessages);
+            int cores = thisHostResources.cores(); // host的可用core
+            int available = cores - thisHostResources.functionsinflight(); // 剩余可用core
+            available = std::max<int>(available, 0);// available最小也要是0
+            int nLocally = std::min<int>(available, nMessages);// nLocally表示可以调度到本地的个数
 
             // Keep track of what's been done
             int remainder = nMessages;
@@ -306,14 +335,14 @@ std::vector<std::string> Scheduler::callFunctions(
             }
 
             // Build list of messages to be executed locally
+            // 这里还是优先的在本地处理请求，处理方式前面相同
             for (; nextMsgIdx < nLocally; nextMsgIdx++) {
                 faabric::Message msg = req.messages().at(nextMsgIdx);
 
                 remainder--;
                 incrementInFlightCount(msg);
 
-                // Provided we're not executing threads, execute the functions
-                // now
+                // Provided we're not executing threads, execute the functions now
                 if (!isThreads) {
                     funcQueue->enqueue(msg);
                     executed.at(nextMsgIdx) = thisHost;
@@ -322,14 +351,21 @@ std::vector<std::string> Scheduler::callFunctions(
             }
 
             // If some are left, we need to distribute
+            // remainder，本地的core已经用完了，申请调度到其他的host
             if (remainder > 0) {
                 // At this point we have a remainder, so we need to distribute
                 // the rest Get the list of registered hosts for this function
+                // 这里是获取funcStr注册过的host集合，我们将遍历此集合，以找到合适的host
+                // 但是这个好像没有实现，只看到了获取，没有看到在哪里注册
+                // 这个注册的host，很有可能是本地有state的，或者是执行过一次请请求的？
+                // 好吧，实现在下面有，就是曾经执行过请求的，既然执行过就很大的可能存在过数据，这就是他们调度的原理，可笑
                 std::unordered_set<std::string>& thisRegisteredHosts =
                   registeredHosts[funcStr];
-
                 // Schedule the remainder on these other hosts
+                // 在这里我们将请求交给了其他的func注册过的host，其他的host将根据自己当前的可用core数目来处理请求
                 for (auto& h : thisRegisteredHosts) {
+                    // 但是此函数是有问题的，获取core数目是根据grpc返回的，显然这个数目是可能变动的，比如host接受了其他的请求
+                    // 这里的一致性是有问题的
                     int nOnThisHost =
                       scheduleFunctionsOnHost(h, req, executed, nextMsgIdx);
 
@@ -342,15 +378,18 @@ std::vector<std::string> Scheduler::callFunctions(
 
             // Now we need to find hosts that aren't already registered for
             // this function and add them
+            // 本地的core和注册过的都不足了，现在需要进行调度
             if (remainder > 0) {
+                // 获取funcStr注册过的host集合
                 std::unordered_set<std::string>& thisRegisteredHosts =
                   registeredHosts[funcStr];
-
+                // 获取所有的host集合，这个集合是每当启动一个host时，写入redis中的，这里是从redis中拿数据
                 std::unordered_set<std::string> allHosts = getAvailableHosts();
 
                 std::unordered_set<std::string> targetHosts;
 
                 // Build list of target hosts
+                // 这一步是获取除注册过的host、本地的host之外的host
                 for (auto& h : allHosts) {
                     // Skip if already registered
                     if (thisRegisteredHosts.find(h) !=
@@ -365,7 +404,9 @@ std::vector<std::string> Scheduler::callFunctions(
 
                     targetHosts.insert(h);
                 }
-
+                // 同样，将请求调度到各个host中执行
+                // 一旦某个host执行过，那么就将其加入此函数注册过的host集合中
+                // 这里有个小问题，master host不应该直接放入吗
                 for (auto& h : targetHosts) {
                     // Schedule functions on this host
                     int nOnThisHost =
@@ -388,6 +429,7 @@ std::vector<std::string> Scheduler::callFunctions(
 
             // At this point there's no more capacity in the system, so we
             // just need to execute locally
+            // 如果还是没有空闲的core，那么只能在本地执行了，这就是调度的最后一步
             if (remainder > 0) {
                 for (; nextMsgIdx < nMessages; nextMsgIdx++) {
                     faabric::Message msg = req.messages().at(nextMsgIdx);
@@ -497,17 +539,23 @@ int Scheduler::scheduleFunctionsOnHost(const std::string& host,
     return nOnThisHost;
 }
 
+// FaabricEndpointHandler将最终调用此函数，来处理请求
+// forceLocal表示是否强制在本地执行,在Handler中，采用默认值是false
 void Scheduler::callFunction(faabric::Message& msg, bool forceLocal)
 {
     // TODO - avoid this copy
-    faabric::Message msgCopy = msg;
+    // 怎么看怎么觉得这行copy没有用，注释掉
+//    faabric::Message msgCopy = msg;
     std::vector<faabric::Message> msgs = { msg };
+    // BatchExecuteRequest，也是通过proto定义的
     faabric::BatchExecuteRequest req = faabric::util::batchExecFactory(msgs);
 
     // Specify that this is a normal function, not a thread
-    req.set_type(req.FUNCTIONS);
+    // 指定请求的类型是function，因为可能线程的实现接口也是通过这里
+    req.set_type(faabric::BatchExecuteRequest::FUNCTIONS);
 
     // Make the call
+    // 此函数将交给一个批量调用的函数进行处理
     callFunctions(req, forceLocal);
 }
 
@@ -530,7 +578,9 @@ Scheduler::getRecordedMessagesShared()
 void Scheduler::incrementInFlightCount(const faabric::Message& msg)
 {
     const std::string funcStr = faabric::util::funcToString(msg, false);
+    // Function在当前host的正在处理数目+1
     inFlightCounts[funcStr]++;
+    // 当前host正在处理的所有的请求数目+1
     thisHostResources.set_functionsinflight(
       thisHostResources.functionsinflight() + 1);
 }
@@ -544,7 +594,7 @@ void Scheduler::addFaaslets(const faabric::Message& msg)
     int nFaaslets = faasletCounts[funcStr];
     int inFlightCount = inFlightCounts[funcStr];
     bool needToScale = nFaaslets < inFlightCount;
-
+    // 如果当前正在运行的请求数目大于fasslet的数目，那么就需要扩展fasslet的个数
     if (needToScale) {
         logger->debug(
           "Scaling {} {}->{} faaslets", funcStr, nFaaslets, nFaaslets + 1);
@@ -553,8 +603,10 @@ void Scheduler::addFaaslets(const faabric::Message& msg)
         faasletCounts[funcStr]++;
         thisHostResources.set_boundexecutors(
           thisHostResources.boundexecutors() + 1);
-
+        //
         // Send bind message (i.e. request a new faaslet bind to this func)
+        // 同样产生fasslet的请求，也是由executor操作的，方式同处理请求一样，也是通过可以个message的队列
+        // 我们将扩展的指令放到message queue，executor从queue中获取
         faabric::Message bindMsg =
           faabric::util::messageFactory(msg.user(), msg.function());
         bindMsg.set_type(faabric::Message_MessageType_BIND);
@@ -562,7 +614,6 @@ void Scheduler::addFaaslets(const faabric::Message& msg)
         bindMsg.set_istypescript(msg.istypescript());
         bindMsg.set_pythonuser(msg.pythonuser());
         bindMsg.set_pythonfunction(msg.pythonfunction());
-        bindMsg.set_issgx(msg.issgx());
 
         bindQueue->enqueue(bindMsg);
     }
@@ -646,7 +697,11 @@ void Scheduler::setFunctionResult(faabric::Message& msg)
     redis.expire(key, RESULT_KEY_EXPIRY);
 
     // Set long-lived result for function too
-    redis.set(msg.statuskey(), inputData);
+    key = msg.statuskey();
+    if (key.empty()) {
+        throw std::runtime_error("Status key empty. Cannot record result");
+    }
+    redis.set(key, inputData);
     redis.expire(key, STATUS_KEY_EXPIRY);
 }
 

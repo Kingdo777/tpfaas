@@ -129,13 +129,6 @@ std::vector<uint8_t> FileserverFileLoader::loadFunctionObjectFile(
     return doLoad(urlPath, "", objectFilePath);
 }
 
-std::vector<uint8_t> FileserverFileLoader::loadFunctionWamrAotFile(
-  const faabric::Message& msg)
-{
-    throw std::runtime_error(
-      "Not yet implemented WAMR AOT file loading from fileserver");
-}
-
 std::vector<uint8_t> FileserverFileLoader::loadSharedObjectObjectFile(
   const std::string& path)
 {
@@ -183,13 +176,6 @@ std::vector<uint8_t> FileserverFileLoader::loadFunctionObjectHash(
     return empty;
 }
 
-std::vector<uint8_t> FileserverFileLoader::loadFunctionWamrAotHash(
-  const faabric::Message& msg)
-{
-    std::vector<uint8_t> empty;
-    return empty;
-}
-
 std::vector<uint8_t> FileserverFileLoader::loadSharedObjectObjectHash(
   const std::string& path)
 {
@@ -202,19 +188,8 @@ void FileserverFileLoader::uploadFunctionObjectHash(
   const std::vector<uint8_t>& hash)
 {}
 
-void FileserverFileLoader::uploadFunctionWamrAotHash(
-  const faabric::Message& msg,
-  const std::vector<uint8_t>& hash)
-{}
-
 void FileserverFileLoader::uploadSharedObjectObjectHash(
   const std::string& path,
   const std::vector<uint8_t>& hash)
 {}
-
-void FileserverFileLoader::uploadSharedObjectAotHash(
-  const std::string& path,
-  const std::vector<uint8_t>& hash)
-{}
-
 }

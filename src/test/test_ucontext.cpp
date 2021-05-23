@@ -29,19 +29,19 @@ int main(int argc, const char *argv[]) {
 //    sleep(1);
 //    setcontext(&ucontext1);
 
-    char stack1[STACK_DEFAULT_SIZE];
-    char stack2[STACK_DEFAULT_SIZE];
+    char stack1[T_STACK_SIZE];
+    char stack2[T_STACK_SIZE];
     getcontext(&ucontext1);
-    ucontext1.uc_link = NULL;
+    ucontext1.uc_link = nullptr;
     ucontext1.uc_stack.ss_sp = stack1;
-    ucontext1.uc_stack.ss_size = STACK_DEFAULT_SIZE;
-    makecontext(&ucontext1, (void (*)(void)) produce, 1, 75475);
+    ucontext1.uc_stack.ss_size = T_STACK_SIZE;
+    makecontext(&ucontext1, (void (*)()) produce, 1, 75475);
 
     getcontext(&ucontext2);
-    ucontext2.uc_link = NULL;
+    ucontext2.uc_link = nullptr;
     ucontext2.uc_stack.ss_sp = stack2;
-    ucontext2.uc_stack.ss_size = STACK_DEFAULT_SIZE;
-    makecontext(&ucontext2, (void (*)(void)) consume, 0);
+    ucontext2.uc_stack.ss_size = T_STACK_SIZE;
+    makecontext(&ucontext2, (void (*)()) consume, 0);
 
     setcontext(&ucontext1);
 

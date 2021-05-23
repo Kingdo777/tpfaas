@@ -14,7 +14,7 @@ int main()
 
     // Start the worker pool
     logger->info("Starting faaslet pool in the background");
-    FaasletPool p(5);
+    FaasletPool p(1);
     FaabricMain w(p);
     w.startBackground();
 

@@ -4,7 +4,7 @@
 
 #include <faabric/scheduler/Scheduler.h>
 #include <faabric/util/logging.h>
-
+// 我们创建的线程池，都会创建一个executor，然后调用其run函数
 namespace faabric::executor {
 class FaabricExecutor
 {
@@ -28,7 +28,7 @@ class FaabricExecutor
     virtual void flush();
 
     std::string id;
-
+    // 派生线池创建线程池的线程的时候获取的tokens
     const int threadIdx;
 
   protected:

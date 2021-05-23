@@ -242,7 +242,6 @@ void linkHook()
     messagesLink();
     mpiLink();
     networkLink();
-    ompLink();
     processLink();
     schedulingLink();
     signalsLink();

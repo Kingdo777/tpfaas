@@ -7,19 +7,12 @@
 #include <faabric/scheduler/Scheduler.h>
 #include <faabric/util/config.h>
 #include <faabric/util/locks.h>
-#include <faabric/util/timing.h>
 #include <module_cache/WasmModuleCache.h>
 
-#include <wamr/WAMRWasmModule.h>
 #include <wavm/WAVMWasmModule.h>
 
-#if (FAASM_SGX)
-#include <sgx/SGXWAMRWasmModule.h>
-#include <sgx/faasm_sgx_system.h>
-#else
 #include <storage/FileLoader.h>
 #include <storage/FileSystem.h>
-#endif
 
 using namespace isolation;
 
@@ -79,6 +72,7 @@ void Faaslet::flush()
     throw faabric::util::ExecutorFinishedException("Faaslet flushed");
 }
 
+// fasslet创建时要设置Cgroup和NS
 Faaslet::Faaslet(int threadIdxIn)
   : FaabricExecutor(threadIdxIn)
 {
@@ -92,12 +86,13 @@ Faaslet::Faaslet(int threadIdxIn)
     CGroup cgroup(BASE_CGROUP_NAME);
     cgroup.addCurrentThread();
 }
-
+// 在推出时记得从NS中移除
 void Faaslet::postFinish()
 {
     ns->removeCurrentThread();
 }
 
+// 到这里请求已经执行完毕，这段代码在finishCall的最开始执行，而postFinish在最后执行
 void Faaslet::preFinishCall(faabric::Message& call,
                             bool success,
                             const std::string& errorMsg)
@@ -117,46 +112,25 @@ void Faaslet::preFinishCall(faabric::Message& call,
         }
     }
 
-    if (conf.wasmVm == "wavm") {
-        logger->debug("Resetting module {} from zygote", funcStr);
-
-        // Restore from zygote
-        wasm::WAVMWasmModule& cachedModule =
-          module_cache::getWasmModuleCache().getCachedModule(call);
-        module = std::make_unique<wasm::WAVMWasmModule>(cachedModule);
-    }
+    logger->debug("Resetting module {} from zygote", funcStr);
+    // Restore from zygote
+    wasm::WAVMWasmModule &cachedModule =
+            module_cache::getWasmModuleCache().getCachedModule(call);
+    module = std::make_unique<wasm::WAVMWasmModule>(cachedModule);
 }
 
+// 核心逻辑依然是bind-exec-rebind
+// 直接获取module对象，然后调用exec，执行完毕之后回复module
 void Faaslet::postBind(const faabric::Message& msg, bool force)
 {
     faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
     auto logger = faabric::util::getLogger();
     std::string funcStr = faabric::util::funcToString(msg, false);
 
-    // Instantiate the right wasm module for the chosen runtime
-    if (conf.wasmVm == "wamr") {
-#if (FAASM_SGX)
-        // When SGX is enabled, we may still be running with vanilla WAMR
-        if (msg.issgx()) {
-            module = std::make_unique<wasm::SGXWAMRWasmModule>();
-        } else {
-            module = std::make_unique<wasm::WAMRWasmModule>();
-        }
-#else
-        // Vanilla WAMR
-        module = std::make_unique<wasm::WAMRWasmModule>();
-#endif
-
-        module->bindToFunction(msg);
-    } else if (conf.wasmVm == "wavm") {
-        // Get cached module
-        wasm::WAVMWasmModule& cachedModule =
-          module_cache::getWasmModuleCache().getCachedModule(msg);
-        module = std::make_unique<wasm::WAVMWasmModule>(cachedModule);
-    } else {
-        logger->error("Unrecognised wasm VM: {}", conf.wasmVm);
-        throw std::runtime_error("Unrecognised wasm VM");
-    }
+    // Get cached module
+    wasm::WAVMWasmModule &cachedModule =
+            module_cache::getWasmModuleCache().getCachedModule(msg);
+    module = std::make_unique<wasm::WAVMWasmModule>(cachedModule);
 }
 
 bool Faaslet::doExecute(faabric::Message& msg)
@@ -165,24 +139,6 @@ bool Faaslet::doExecute(faabric::Message& msg)
 
     auto& conf = faabric::util::getSystemConfig();
     const std::string snapshotKey = msg.snapshotkey();
-
-    // Restore from snapshot if necessary
-    if (conf.wasmVm == "wavm") {
-        if (!snapshotKey.empty() && !msg.issgx()) {
-            PROF_START(snapshotOverride)
-
-            logger->debug("Restoring {} from snapshot {} before execution",
-                          id,
-                          snapshotKey);
-            module_cache::WasmModuleCache& registry =
-              module_cache::getWasmModuleCache();
-
-            wasm::WAVMWasmModule& snapshot = registry.getCachedModule(msg);
-            module = std::make_unique<wasm::WAVMWasmModule>(snapshot);
-
-            PROF_END(snapshotOverride)
-        }
-    }
 
     // Execute the function
     bool success = module->execute(msg);

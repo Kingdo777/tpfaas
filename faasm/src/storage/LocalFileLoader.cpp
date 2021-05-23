@@ -24,13 +24,6 @@ std::vector<uint8_t> LocalFileLoader::loadFunctionObjectFile(
     return loadFileBytes(objectFilePath);
 }
 
-std::vector<uint8_t> LocalFileLoader::loadFunctionWamrAotFile(
-  const faabric::Message& msg)
-{
-    std::string objectFilePath = faabric::util::getFunctionAotFile(msg);
-    return loadFileBytes(objectFilePath);
-}
-
 std::vector<uint8_t> LocalFileLoader::loadSharedObjectObjectFile(
   const std::string& path)
 {
@@ -59,13 +52,6 @@ std::vector<uint8_t> LocalFileLoader::loadFunctionObjectHash(
   const faabric::Message& msg)
 {
     std::string outputFile = faabric::util::getFunctionObjectFile(msg);
-    return loadHashForPath(outputFile);
-}
-
-std::vector<uint8_t> LocalFileLoader::loadFunctionWamrAotHash(
-  const faabric::Message& msg)
-{
-    std::string outputFile = faabric::util::getFunctionAotFile(msg);
     return loadHashForPath(outputFile);
 }
 
@@ -148,13 +134,6 @@ void LocalFileLoader::uploadFunctionObjectFile(
     faabric::util::writeBytesToFile(objFilePath, objBytes);
 }
 
-void LocalFileLoader::uploadFunctionAotFile(
-  const faabric::Message& msg,
-  const std::vector<uint8_t>& objBytes)
-{
-    std::string objFilePath = faabric::util::getFunctionAotFile(msg);
-    faabric::util::writeBytesToFile(objFilePath, objBytes);
-}
 
 void LocalFileLoader::uploadSharedObjectObjectFile(
   const std::string& path,
@@ -162,13 +141,6 @@ void LocalFileLoader::uploadSharedObjectObjectFile(
 {
     std::string outputPath = faabric::util::getSharedObjectObjectFile(path);
     faabric::util::writeBytesToFile(outputPath, objBytes);
-}
-
-void LocalFileLoader::uploadSharedObjectAotFile(
-  const std::string& path,
-  const std::vector<uint8_t>& objBytes)
-{
-    throw std::runtime_error("Not yet implemented WAMR shared objects");
 }
 
 void LocalFileLoader::uploadSharedFile(const std::string& path,
@@ -199,26 +171,11 @@ void LocalFileLoader::uploadFunctionObjectHash(const faabric::Message& msg,
     writeHashForFile(objFilePath, hash);
 }
 
-void LocalFileLoader::uploadFunctionWamrAotHash(
-  const faabric::Message& msg,
-  const std::vector<uint8_t>& hash)
-{
-    std::string objFilePath = faabric::util::getFunctionAotFile(msg);
-    writeHashForFile(objFilePath, hash);
-}
-
 void LocalFileLoader::uploadSharedObjectObjectHash(
   const std::string& path,
   const std::vector<uint8_t>& hash)
 {
     std::string outputPath = faabric::util::getSharedObjectObjectFile(path);
     writeHashForFile(outputPath, hash);
-}
-
-void LocalFileLoader::uploadSharedObjectAotHash(
-  const std::string& path,
-  const std::vector<uint8_t>& hash)
-{
-    throw std::runtime_error("Not yet implemented WAMR shared objects");
 }
 }

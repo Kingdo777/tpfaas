@@ -45,10 +45,11 @@ void SystemConfig::initialise()
     overrideCpuCount = this->getSystemConfIntParam("OVERRIDE_CPU_COUNT", "0");
 
     // Worker-related timeouts (all in seconds)
+    // 这注释，就是在放屁，显然单位是毫秒，queue使用的就是毫秒级的计时
     globalMessageTimeout =
       this->getSystemConfIntParam("GLOBAL_MESSAGE_TIMEOUT", "60000");
-    boundTimeout = this->getSystemConfIntParam("BOUND_TIMEOUT", "30000");
-    unboundTimeout = this->getSystemConfIntParam("UNBOUND_TIMEOUT", "300000");
+    boundTimeout = this->getSystemConfIntParam("BOUND_TIMEOUT", "30000");       // 每30S终止一个bind函数的Fasslet
+    unboundTimeout = this->getSystemConfIntParam("UNBOUND_TIMEOUT", "300000");  // 每5分钟终止一个没有bind函数的Fasslet
     chainedCallTimeout =
       this->getSystemConfIntParam("CHAINED_CALL_TIMEOUT", "300000");
 

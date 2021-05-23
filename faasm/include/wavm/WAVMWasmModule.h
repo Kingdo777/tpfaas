@@ -157,9 +157,6 @@ class WAVMWasmModule final
     std::unordered_map<std::string, std::pair<int, bool>> globalOffsetMemoryMap;
     std::unordered_map<std::string, int> missingGlobalOffsetEntries;
 
-    // OpenMP
-    std::vector<WAVM::Runtime::Context*> openMPContexts;
-
     static WAVM::Runtime::Instance* getEnvModule();
 
     static WAVM::Runtime::Instance* getWasiModule();
@@ -189,10 +186,6 @@ class WAVMWasmModule final
 
     WAVM::Runtime::Function* getWasmConstructorsFunction(
       WAVM::Runtime::Instance* module);
-
-    int32_t executeAsOMPThread(int threadPoolIdx,
-                               uint32_t stackTop,
-                               std::shared_ptr<faabric::Message> msg) override;
 
     int32_t executeAsPthread(uint32_t stackTop,
                              std::shared_ptr<faabric::Message> msg) override;

@@ -59,7 +59,8 @@ include_directories(
         ${RapidJSON_SOURCE_DIR}/include
 )
 
-add_subdirectory(faasm/faabric)
+add_subdirectory(faasm)
+add_subdirectory(src/endpoint)
 add_subdirectory(src/RFIT)
 add_subdirectory(src/utils)
 add_subdirectory(src/test)

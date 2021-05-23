@@ -7,27 +7,8 @@
 #include <faabric/util/func.h>
 #include <faabric/util/timing.h>
 #include <module_cache/WasmModuleCache.h>
-#include <wamr/WAMRWasmModule.h>
 #include <wasm/WasmModule.h>
 
-bool runWithWamr(faabric::Message& m, int runCount)
-{
-    bool success = true;
-
-    for (int i = 0; i < runCount; i++) {
-        wasm::WAMRWasmModule module;
-        module.bindToFunction(m);
-
-        success = module.execute(m);
-        if (!success) {
-            break;
-        }
-    }
-
-    wasm::tearDownWAMRGlobally();
-
-    return success;
-}
 
 bool runWithWavm(faabric::Message& m, int runCount)
 {
@@ -108,15 +89,8 @@ int main(int argc, char* argv[])
     faabric::util::SystemConfig& conf = faabric::util::getSystemConfig();
     bool success = true;
 
-    if (conf.wasmVm == "wavm") {
-        logger->info("Running {}/{} with WAVM", m.user(), m.function());
-        success = runWithWavm(m, runCount);
-    } else if (conf.wasmVm == "wamr") {
-        logger->info("Running {}/{} with WAMR", m.user(), m.function());
-        success = runWithWamr(m, runCount);
-    } else {
-        throw std::runtime_error("Invalid wasm VM: " + conf.wasmVm);
-    }
+    logger->info("Running {}/{} with WAVM", m.user(), m.function());
+    success = runWithWavm(m, runCount);
 
     if (!success) {
         throw std::runtime_error(

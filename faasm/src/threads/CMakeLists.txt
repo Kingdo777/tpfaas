@@ -2,7 +2,6 @@ file(GLOB HEADERS "${FAASM_INCLUDE_DIR}/threads/*.h")
 
 set(LIB_FILES
         MutexManager.cpp
-        ThreadState.cpp
         ${HEADERS}
         )
 

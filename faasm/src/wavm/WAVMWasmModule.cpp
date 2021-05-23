@@ -88,9 +88,6 @@ WAVMWasmModule::WAVMWasmModule()
 {
     stdoutMemFd = 0;
     stdoutSize = 0;
-
-    // Prepare OpenMP context cache
-    openMPContexts = std::vector<Runtime::Context*>(threadPoolSize, nullptr);
 }
 
 WAVMWasmModule& WAVMWasmModule::operator=(const WAVMWasmModule& other)
@@ -138,10 +135,6 @@ void WAVMWasmModule::clone(const WAVMWasmModule& other)
     // each module will have its own thread pool
     threadPoolSize = other.threadPoolSize;
     threadStacks = other.threadStacks;
-
-    openMPThreads.clear();
-    openMPTaskQueueMap.clear();
-    openMPContexts = std::vector<Runtime::Context*>(threadPoolSize, nullptr);
 
     pthreads.clear();
     pthreadTaskQueue.reset();
@@ -235,7 +228,6 @@ bool WAVMWasmModule::tearDown()
     dynamicModuleMap.clear();
 
     // Threads
-    shutdownOpenMPThreads();
     shutdownPthreads();
 
     // --- WAVM stuff ---
@@ -577,7 +569,8 @@ Runtime::Instance* WAVMWasmModule::createModuleInstance(
         if (!stackDef.type.isMutable) {
             throw std::runtime_error("Found immutable stack top");
         }
-    } else {
+    }
+    else {
         // A dynamic module needs the same resources as a main module but we
         // need to manually create them
 
@@ -884,15 +877,6 @@ bool WAVMWasmModule::execute(faabric::Message& msg, bool forceNoop)
         restore(msg.snapshotkey());
     }
 
-    // Set up OMP
-    threads::setUpOpenMPContext(msg);
-
-    // Executes OMP fork message if necessary
-    if (msg.ompdepth() > 0) {
-        // TODO - reimplement this call to execute a remote OpenMP thread
-        throw std::runtime_error("Not yet implemented remote OpenMP");
-    }
-
     int funcPtr = msg.funcptr();
     std::vector<IR::UntaggedValue> invokeArgs;
     Runtime::Function* funcInstance;
@@ -999,38 +983,6 @@ int32_t WAVMWasmModule::executeAsPthread(uint32_t stackTop,
     // Record the return value
     IR::UntaggedValue returnValue;
     executeFunction(threadContext, funcInstance, invokeArgs, returnValue);
-    msg->set_returnvalue(returnValue.i32);
-
-    return returnValue.i32;
-}
-
-int32_t WAVMWasmModule::executeAsOMPThread(
-  int threadPoolIdx,
-  uint32_t stackTop,
-  std::shared_ptr<faabric::Message> msg)
-{
-    Runtime::Function* funcInstance = getFunctionFromPtr(msg->funcptr());
-    int threadNum = msg->ompthreadnum();
-    int argc = msg->ompfunctionargs_size();
-
-    // Set up function args
-    std::vector<IR::UntaggedValue> invokeArgs = { threadNum, argc };
-    for (int argIdx = 0; argIdx < argc; argIdx++) {
-        invokeArgs.emplace_back(msg->ompfunctionargs(argIdx));
-    }
-
-    Runtime::ContextRuntimeData* contextRuntimeData =
-      getContextRuntimeData(executionContext);
-
-    if (openMPContexts.at(threadPoolIdx) == nullptr) {
-        openMPContexts.at(threadPoolIdx) =
-          createThreadContext(stackTop, contextRuntimeData);
-    }
-
-    // Record the return value
-    IR::UntaggedValue returnValue;
-    executeFunction(
-      openMPContexts[threadPoolIdx], funcInstance, invokeArgs, returnValue);
     msg->set_returnvalue(returnValue.i32);
 
     return returnValue.i32;

@@ -378,8 +378,6 @@ void mpiLink();
 
 void networkLink();
 
-void ompLink();
-
 void processLink();
 
 void schedulingLink();

@@ -19,6 +19,8 @@ void SystemConfig::initialise() {
     // System
     logLevel = getEnvVar("LOG_LEVEL", "info");
     logFile = getEnvVar("LOG_FILE", "off");
+    endpointPort = (int) strtol(getEnvVar("ENDPOINT_PORT", "8080").c_str(), nullptr, 10);
+    endpointNumThreads = (int) strtol(getEnvVar("ENDPOINT_NUM_THREADS", "1").c_str(), nullptr, 10);
 }
 
 void SystemConfig::reset() {

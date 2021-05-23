@@ -36,12 +36,17 @@ class FaabricPool
   private:
     std::atomic<bool> _shutdown = false;
     faabric::scheduler::Scheduler& scheduler;
+    // TokenPool是通过queue实现的，用于控制线程的个数，只有拿到token才能创建新的线程
     faabric::util::TokenPool threadTokenPool;
+    // state微服务器
     faabric::state::StateServer stateServer;
+    // Function微服务器，用于在其他host上调用函数
     faabric::scheduler::FunctionCallServer functionServer;
 
     std::thread mpiThread;
+    // 用于创建县城池的派生线程
     std::thread poolThread;
+    // 线程池
     std::vector<std::thread> poolThreads;
 };
 

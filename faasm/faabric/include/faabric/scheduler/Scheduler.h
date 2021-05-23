@@ -110,8 +110,9 @@ class Scheduler
     std::unordered_map<std::string, std::shared_ptr<InMemoryMessageQueue>>
       queueMap;
     std::unordered_map<std::string, long> faasletCounts;
+    // 此map记录了特定function在当前host上正在运行的请求数目
     std::unordered_map<std::string, long> inFlightCounts;
-
+    // HostResources是通过proto定义的，用于记录host的{core数目、executor数目、所有的正在执行的请求的数目}
     faabric::HostResources thisHostResources;
     std::unordered_map<std::string, std::unordered_set<std::string>>
       registeredHosts;

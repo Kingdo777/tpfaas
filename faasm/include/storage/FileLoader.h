@@ -25,9 +25,6 @@ class FileLoader
     virtual std::vector<uint8_t> loadFunctionObjectFile(
       const faabric::Message& msg) = 0;
 
-    virtual std::vector<uint8_t> loadFunctionWamrAotFile(
-      const faabric::Message& msg) = 0;
-
     virtual std::vector<uint8_t> loadSharedObjectObjectFile(
       const std::string& path) = 0;
 
@@ -36,24 +33,13 @@ class FileLoader
     virtual std::vector<uint8_t> loadFunctionObjectHash(
       const faabric::Message& msg) = 0;
 
-    virtual std::vector<uint8_t> loadFunctionWamrAotHash(
-      const faabric::Message& msg) = 0;
-
     virtual std::vector<uint8_t> loadSharedObjectObjectHash(
       const std::string& path) = 0;
 
     virtual void uploadFunctionObjectHash(const faabric::Message& msg,
                                           const std::vector<uint8_t>& hash) = 0;
 
-    virtual void uploadFunctionWamrAotHash(
-      const faabric::Message& msg,
-      const std::vector<uint8_t>& hash) = 0;
-
     virtual void uploadSharedObjectObjectHash(
-      const std::string& path,
-      const std::vector<uint8_t>& hash) = 0;
-
-    virtual void uploadSharedObjectAotHash(
       const std::string& path,
       const std::vector<uint8_t>& hash) = 0;
 
@@ -65,15 +51,7 @@ class FileLoader
       const faabric::Message& msg,
       const std::vector<uint8_t>& objBytes) = 0;
 
-    virtual void uploadFunctionAotFile(
-      const faabric::Message& msg,
-      const std::vector<uint8_t>& objBytes) = 0;
-
     virtual void uploadSharedObjectObjectFile(
-      const std::string& path,
-      const std::vector<uint8_t>& objBytes) = 0;
-
-    virtual void uploadSharedObjectAotFile(
       const std::string& path,
       const std::vector<uint8_t>& objBytes) = 0;
 

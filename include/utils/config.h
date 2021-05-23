@@ -8,6 +8,8 @@ public:
     // System
     std::string logLevel;
     std::string logFile;
+    int endpointPort{};
+    int endpointNumThreads{};
 
     SystemConfig();
 

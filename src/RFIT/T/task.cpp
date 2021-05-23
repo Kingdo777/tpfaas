@@ -223,7 +223,8 @@ void getInstance(T *t) {
 //#define PRINT_TGID
 static void *task_done(void *arg) {
     T *t = (T *) arg;
-    getLogger()->debug("Create A new T : <{}>", t->toString());
+    const std::shared_ptr<spdlog::logger> &logger = getLogger();
+    logger->debug("Create A new T : <{}>", t->toString());
     getcontext(&t->getTaskContext());
     if (!t->isDirectRun() && t->getDealWith()) {
         if (t->getWorkFor()->isConcurrency()) {
