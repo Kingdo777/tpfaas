@@ -77,7 +77,7 @@ else()
     set(FAABRIC_LIB_TYPE STATIC)
 endif()
 
-add_library(faabric
+ add_library(faabric
     ${FAABRIC_LIB_TYPE}
     faabric.cpp
     $<TARGET_OBJECTS:endpoint_obj>
@@ -92,7 +92,7 @@ add_library(faabric
     $<TARGET_OBJECTS:util_obj>
 )
 
-#add_dependencies(faabric pistache spdlog_ext)
+add_dependencies(faabric pistache spdlog_ext)
 
 target_link_libraries(faabric PUBLIC
     ${Protobuf_LIBRARIES}
