@@ -24,4 +24,6 @@ file(GLOB SRC_FILES
 
 set(LIB_FILES ${HEADERS} ${SRC_FILES})
 tpfaas_private_lib(tpfaas-endpoint "${LIB_FILES}")
+add_dependencies(endpoint pistache_ext)
+target_link_directories(endpoint PUBLIC ${CMAKE_INSTALL_PREFIX}/lib)
 target_link_libraries(tpfaas-endpoint pthread pistache)

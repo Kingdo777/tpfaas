@@ -23,16 +23,6 @@ set_target_properties(pistache
         PROPERTIES IMPORTED_LOCATION ${CMAKE_INSTALL_PREFIX}/lib/libpistache.so
         )
 
-# RapidJSON
-set(RAPIDJSON_BUILD_DOC OFF CACHE INTERNAL "")
-set(RAPIDJSON_BUILD_EXAMPLES OFF CACHE INTERNAL "")
-set(RAPIDJSON_BUILD_TESTS OFF CACHE INTERNAL "")
-FetchContent_Declare(rapidjson_ext
-        GIT_REPOSITORY "https://github.com/Tencent/rapidjson"
-        GIT_TAG "2ce91b823c8b4504b9c40f99abf00917641cef6c"
-        CMAKE_CACHE_ARGS "-DCMAKE_INSTALL_PREFIX:STRING=${CMAKE_INSTALL_PREFIX}"
-        )
-
 # WAVM
 FetchContent_Declare(wavm_ext
         GIT_REPOSITORY "https://github.com/Kingdo777/WAVM.git"
@@ -40,14 +30,8 @@ FetchContent_Declare(wavm_ext
         -DDLL_IMPORT="
         )
 
-FetchContent_MakeAvailable(wavm_ext rapidjson_ext)
-
-# Allow access to headers nested in other projects
+FetchContent_MakeAvailable(wavm_ext)
 FetchContent_GetProperties(wavm_ext SOURCE_DIR WAVM_SOURCE_DIR)
-message(STATUS WAVM_SOURCE_DIR ${WAVM_SOURCE_DIR})
-
-FetchContent_GetProperties(rapidjson_ext SOURCE_DIR RapidJSON_SOURCE_DIR)
-message(STATUS RapidJSON_SOURCE_DIR ${RapidJSON_SOURCE_DIR})
 
 # spdlog
 ExternalProject_Add(spdlog_ext
@@ -56,8 +40,19 @@ ExternalProject_Add(spdlog_ext
         CMAKE_CACHE_ARGS "-DCMAKE_INSTALL_PREFIX:STRING=${CMAKE_INSTALL_PREFIX}"
         )
 ExternalProject_Get_Property(spdlog_ext SOURCE_DIR)
-set(SPDLOG_INCLUDE_DIR ${SOURCE_DIR}/include)
+set(RapidJSON_SOURCE_DIR ${SOURCE_DIR}/include)
 
+# RapidJSON
+set(RAPIDJSON_BUILD_DOC OFF CACHE INTERNAL "")
+set(RAPIDJSON_BUILD_EXAMPLES OFF CACHE INTERNAL "")
+set(RAPIDJSON_BUILD_TESTS OFF CACHE INTERNAL "")
+ExternalProject_Add(rapidjson_ext
+        GIT_REPOSITORY "https://github.com/Tencent/rapidjson"
+        GIT_TAG "2ce91b823c8b4504b9c40f99abf00917641cef6c"
+        CMAKE_CACHE_ARGS "-DCMAKE_INSTALL_PREFIX:STRING=${CMAKE_INSTALL_PREFIX}"
+        )
+ExternalProject_Get_Property(rapidjson_ext SOURCE_DIR)
+set(SPDLOG_INCLUDE_DIR ${SOURCE_DIR}/include)
 
 # cppcodec (for base64)
 ExternalProject_Add(cppcodec_ext

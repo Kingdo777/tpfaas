@@ -10,7 +10,7 @@ set(LIB_FILES
 
 faabric_lib(rpc "${LIB_FILES}")
 
-#add_dependencies(rpc spdlog_ext)
+add_dependencies(rpc spdlog_ext)
 
 target_link_libraries(rpc
     ${Protobuf_LIBRARIES}
