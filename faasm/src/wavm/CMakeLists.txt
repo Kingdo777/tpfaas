@@ -1,6 +1,6 @@
 include_directories(
         ${FAASM_INCLUDE_DIR}/wavm
-        ${FAASM_WAVM_SOURCE_DIR}/Lib
+        ${WAVM_SOURCE_DIR}/Lib
 )
 
 file(GLOB HEADERS "${FAASM_INCLUDE_DIR}/wavm/*.h")

@@ -40,15 +40,7 @@ FetchContent_Declare(wavm_ext
         -DDLL_IMPORT="
         )
 
-# cpprestsdk
-FetchContent_Declare(cpprestsdk
-        GIT_REPOSITORY "https://github.com/microsoft/cpprestsdk.git"
-        GIT_TAG "v2.10.18"
-        CMAKE_ARGS "-DBUILD_TESTING=OFF"
-        CMAKE_CACHE_ARGS "-DCMAKE_INSTALL_PREFIX:STRING=${CMAKE_INSTALL_PREFIX}"
-        )
-
-FetchContent_MakeAvailable(wavm_ext rapidjson_ext cpprestsdk)
+FetchContent_MakeAvailable(wavm_ext rapidjson_ext)
 
 # Allow access to headers nested in other projects
 FetchContent_GetProperties(wavm_ext SOURCE_DIR WAVM_SOURCE_DIR)

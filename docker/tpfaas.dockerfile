@@ -1,4 +1,6 @@
-FROM faasm/cpython:0.0.12
+FROM faasm/cpython:0.0.12 as python
+FROM faasm/cpp-root:0.5.16
+COPY --from=python /usr/local/faasm/runtime_root /usr/local/faasm/runtime_root
 
 RUN git config --global http.proxy http://211.69.198.232:8118
 RUN git config --global https.proxy http://211.69.198.232:8118
@@ -15,7 +17,10 @@ RUN cmake \
     -DCMAKE_BUILD_TYPE=Release \
     /code/tpfaas
 
-RUN cmake --build .
+RUN cmake --build . --target simple_runner
+RUN cmake --build . --target func_runner
+RUN cmake --build . --target codegen_func
+RUN cmake --build . --target codegen_shared_obj
 
 EXPOSE 8080
 

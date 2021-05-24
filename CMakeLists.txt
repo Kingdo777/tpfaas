@@ -23,6 +23,8 @@ set(FAASM_INCLUDE_DIR ${FAASM_SOURCE_DIR}/include)
 set(FAABRIC_SOURCE_DIR ${FAASM_SOURCE_DIR}/faabric)
 set(FAABRIC_INCLUDE_DIR ${FAABRIC_SOURCE_DIR}/include)
 
+set(CMAKE_INSTALL_PREFIX ${CMAKE_BINARY_DIR}/install)
+
 # Library type (for shared libraries)
 if (TPFAAS_STATIC_LIBS)
     function(tpfaas_public_lib lib_name lib_deps)
@@ -56,6 +58,7 @@ include_directories(
         ${FAABRIC_INCLUDE_DIR}
         ${TPFAAS_INCLUDE_DIR}
         ${WAVM_SOURCE_DIR}/Include
+        ${WAVM_SOURCE_DIR}/Lib
         ${RapidJSON_SOURCE_DIR}/include
 )
 
