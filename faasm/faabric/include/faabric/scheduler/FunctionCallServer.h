@@ -20,10 +20,6 @@ class FunctionCallServer final
                  const faabric::Message* request,
                  faabric::FunctionStatusResponse* response) override;
 
-    Status MPICall(ServerContext* context,
-                   const faabric::MPIMessage* request,
-                   faabric::FunctionStatusResponse* response) override;
-
     Status GetResources(ServerContext* context,
                         const faabric::ResourceRequest* request,
                         faabric::HostResources* response) override;

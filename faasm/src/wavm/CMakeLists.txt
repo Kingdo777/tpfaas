@@ -19,7 +19,6 @@ set(LIB_FILES
         maths.cpp
         memory.cpp
         messages.cpp
-        mpi.cpp
         network.cpp
         process.cpp
         scheduling.cpp

@@ -1,8 +1,10 @@
 #pragma once
 
 #include <WAVM/WASI/WASIABI.h>
-#include <faabric/scheduler/MpiContext.h>
 #include <sys/socket.h>
+#include <vector>
+#include <string>
+#include <faabric/state/StateKeyValue.h>
 
 #define FAKE_NAME "faasm"
 #define FAKE_PASSWORD "foobar123"

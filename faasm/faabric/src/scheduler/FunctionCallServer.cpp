@@ -1,5 +1,4 @@
 #include <faabric/scheduler/FunctionCallServer.h>
-#include <faabric/scheduler/MpiWorldRegistry.h>
 #include <faabric/snapshot/SnapshotRegistry.h>
 #include <faabric/state/State.h>
 #include <faabric/util/config.h>
@@ -44,21 +43,6 @@ Status FunctionCallServer::Flush(ServerContext* context,
 
     // Reset the scheduler
     scheduler.reset();
-
-    return Status::OK;
-}
-
-Status FunctionCallServer::MPICall(ServerContext* context,
-                                   const faabric::MPIMessage* request,
-                                   faabric::FunctionStatusResponse* response)
-{
-
-    // TODO - avoid copying message
-    faabric::MPIMessage m = *request;
-
-    MpiWorldRegistry& registry = getMpiWorldRegistry();
-    MpiWorld& world = registry.getWorld(m.worldid());
-    world.enqueueMessage(m);
 
     return Status::OK;
 }

@@ -21,8 +21,11 @@ RUN cmake --build . --target simple_runner
 RUN cmake --build . --target func_runner
 RUN cmake --build . --target codegen_func
 RUN cmake --build . --target codegen_shared_obj
+RUN cmake --build . --target pool_runner
 
 EXPOSE 8080
+
+CMD "/build/bin/pool_runner"
 
 #COPY ../cmake-build-debug/bin/tpfaas .
 #COPY ../config/nginx-server.conf /etc/nginx/sites-enabled/default

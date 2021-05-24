@@ -59,8 +59,6 @@ endfunction()
 add_subdirectory(src/endpoint)
 add_subdirectory(src/executor)
 add_subdirectory(src/flat)
-add_subdirectory(src/mpi)
-add_subdirectory(src/mpi_native)
 add_subdirectory(src/proto)
 add_subdirectory(src/redis)
 add_subdirectory(src/rpc)
@@ -96,7 +94,6 @@ add_dependencies(faabric pistache spdlog_ext)
 
 target_link_libraries(faabric PUBLIC
     ${Protobuf_LIBRARIES}
-    faabricmpi
     gRPC::grpc++
     gRPC::grpc++_reflection
     hiredis

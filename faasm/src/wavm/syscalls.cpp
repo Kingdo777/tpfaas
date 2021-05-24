@@ -240,7 +240,6 @@ void linkHook()
     mathsLink();
     memoryLink();
     messagesLink();
-    mpiLink();
     networkLink();
     processLink();
     schedulingLink();

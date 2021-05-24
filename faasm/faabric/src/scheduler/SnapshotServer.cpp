@@ -1,4 +1,3 @@
-#include <faabric/scheduler/MpiWorldRegistry.h>
 #include <faabric/scheduler/SnapshotServer.h>
 #include <faabric/snapshot/SnapshotRegistry.h>
 #include <faabric/state/State.h>

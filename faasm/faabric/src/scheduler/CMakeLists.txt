@@ -7,13 +7,9 @@ set(LIB_FILES
         Scheduler.cpp
         SnapshotServer.cpp
         SnapshotClient.cpp
-        MpiContext.cpp
-        MpiThreadPool.cpp
-        MpiWorldRegistry.cpp
-        MpiWorld.cpp
         ${HEADERS}
         )
 
 faabric_lib(scheduler "${LIB_FILES}")
 
-target_link_libraries(scheduler flat proto snapshot state faabricmpi redis)
+target_link_libraries(scheduler flat proto snapshot state redis)
